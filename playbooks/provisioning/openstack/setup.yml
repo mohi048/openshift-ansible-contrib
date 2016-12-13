@@ -1,0 +1,24 @@
+---
+- name: Set up OpenStack environment for installation of OpenShift
+  hosts: localhost
+  connection: local
+  become: no
+  gather_facts: no
+  vars:
+    openshift_provisioning_cluster_id: test
+    openshift_provisioning_env_id: test
+    openshift_provisioning_openstack_keyname: default
+    openshift_provisioning_openstack_region: us-east-1
+    openshift_provisioning_openstack_subnet_azs: "{{ lookup('ec2_zones_by_region', openshift_provisioning_openstack_region) }}"
+    openshift_provisioning_openstack_stack_name: openshift-{{ openshift_provisioning_cluster_id }}-{{ openshift_provisioning_env_id }}
+    openshift_provisioning_openstack_num_subnets: "{{ openshift_provisioning_openstack_subnet_azs.split(',') | length }}"
+  tasks:
+  - name: Create the Heat Stack
+    os_stack:
+      name: "{{ openshift_provisioning_openstack_stack_name }}"
+      template: files/main.yaml
+      parameters:
+        key_name: "{{ openshift_provisioning_openstack_keyname }}"
+    register: heat_output
+
+  - debug: var=heat_output
