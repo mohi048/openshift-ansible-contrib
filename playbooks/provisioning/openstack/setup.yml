@@ -18,7 +18,9 @@
       name: "{{ openshift_provisioning_openstack_stack_name }}"
       template: files/main.yaml
       parameters:
-        key_name: "{{ openshift_provisioning_openstack_keyname }}"
+        dns_nameserver:  "{{ openshift_provisioning_openstack_dns_nameserver | default('8.8.8.8') }}"
+        external_network: "{{ openshift_provisioning_openstack_external_network | default('public') }}"
+        ssh_key_name: "{{ openshift_provisioning_openstack_keyname | default('default') }}"
     register: heat_output
 
   - debug: var=heat_output
