@@ -1,0 +1,91 @@
+heat_template_version: 2014-10-16
+
+description: >
+  Prepare the environment (servers, networks, security groups, etc.)
+  for installing OpenShift.
+
+parameters:
+
+  # Networks to connect to or create
+  external_network:
+    type: string
+    description: >
+      The external network that provides floating IP addresses for the nodes
+    constraints:
+    - custom_constraint: neutron.network
+
+  internal_subnet:
+    type: string
+    description: >
+      The subnet used for openshift node-node and node-master communication
+    default: 192.168.0.0/24
+
+  dns_nameserver:
+    type: comma_delimited_list
+    description: Addresses of a dns nameserver reachable in your environment
+    default: 8.8.8.8
+
+  ssh_key_name:
+    type: string
+    description: Name of the SSH keypair registered with Nova
+    constraints:
+    - custom_constraint: nova.keypair
+
+resources:
+
+  # Network Components
+  fixed_network:
+    type: OS::Neutron::Net
+
+  fixed_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      cidr: {get_param: internal_subnet}
+      dns_nameservers: {get_param: dns_nameserver}
+      network: {get_resource: fixed_network}
+
+  external_router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info:
+        network: {get_param: external_network}
+
+  external_router_interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: {get_resource: external_router}
+      subnet: {get_resource: fixed_subnet}
+
+  test_server_port:
+    type: OS::Neutron::Port
+    properties:
+      security_groups:
+      - {get_resource: test_server_security_group}
+      network: {get_resource: fixed_network}
+      fixed_ips:
+      - subnet: {get_resource: fixed_subnet}
+      replacement_policy: AUTO
+
+  test_server_security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      rules:
+      - protocol: icmp
+      - protocol: tcp
+        port_range_min: 22
+        port_range_max: 22
+
+  test_server_floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: {get_param: external_network}
+      port_id: {get_resource: test_server_port}
+
+  test_server:
+    type: OS::Nova::Server
+    properties:
+      flavor: m1.medium
+      image: centos72
+      key_name: {get_param: ssh_key_name}
+      networks:
+      - port: {get_resource: test_server_port}
