@@ -1,0 +1,153 @@
+heat_template_version: 2014-10-16
+
+
+description: >
+  OpenShift Master
+
+
+parameters:
+
+  key_name:
+    description: >
+      A pre-submitted SSH key to access the VM hosts
+    type: string
+    constraints:
+    - custom_constraint: nova.keypair
+
+  image:
+    description: >
+      Select a base image to use for the master servers
+    type: string
+    constraints:
+    - custom_constraint: glance.image
+
+  flavor:
+    description: >
+      Define the hardware characteristics for the VMs: CPU, Memory, base disk
+    type: string
+    constraints:
+    - custom_constraint: nova.flavor
+
+  docker_volume_size:
+    description: >
+      size of a cinder volume in GB to allocate to docker for container/image
+      storage
+    type: number
+    default: 25
+
+  ssh_user:
+    description: >
+      The user for SSH access to the VM hosts
+    type: string
+
+  external_network:
+    description: >
+      The name of the inbound access network
+    type: string
+    constraints:
+    - custom_constraint: neutron.network
+
+  fixed_network:
+    description: >
+      The name or ID of the admin and public network
+    type: string
+    constraints:
+    - custom_constraint: neutron.network
+
+  fixed_subnet:
+    description: >
+      The name or ID of the admin and public IPv4 space
+    type: string
+    constraints:
+    - custom_constraint: neutron.subnet
+
+  internal_network:
+    description: >
+      The name or ID of the internal network
+    type: string
+    constraints:
+    - custom_constraint: neutron.network
+
+  internal_subnet:
+    description: >
+      The name or ID of the internal IPv4 space
+    type: string
+    constraints:
+    - custom_constraint: neutron.subnet
+
+  # TODO
+  # master_server_group:
+  #   description: >
+  #     ID of a server group containing all of the master hosts
+  #   type: string
+
+  master_security_group:
+    description: >
+      ID of the network access policies for the OpenShift master hosts
+    type: string
+
+resources:
+
+  # Create a network connection on the internal communications network
+  port:
+    type: OS::Neutron::Port
+    properties:
+      security_groups:
+      - {get_param: master_security_group}
+      network: {get_param: fixed_network}
+      fixed_ips:
+      - subnet: {get_param: fixed_subnet}
+      replacement_policy: AUTO
+
+  # Create a network connection on the internal communications network
+  internal_port:
+    type: OOShift::ContainerPort
+    properties:
+      security_group: {get_param: master_security_group}
+      network: {get_param: internal_network}
+      subnet: {get_param: internal_subnet}
+
+  # Create the VM instance to host the OpenShift master service
+  host:
+    type: OS::Nova::Server
+    properties:
+      admin_user: {get_param: ssh_user}
+      image: {get_param: image}
+      flavor: {get_param: flavor}
+      key_name: {get_param: key_name}
+      networks:
+      - port: {get_resource: port}
+      - port: {get_attr: [internal_port, port]}
+      user_data_format: SOFTWARE_CONFIG
+      user_data: {get_resource: init}
+      # TODO: enable these back!
+      # scheduler_hints:
+      #   group: {get_param: master_server_group}
+
+  # Create space for Docker containers and images
+  docker_volume:
+    type: OS::Cinder::Volume
+    properties:
+      size: {get_param: docker_volume_size}
+
+  # Bind the docker storage to the VM
+  docker_volume_attach:
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      instance_uuid: {get_resource: host}
+      volume_id: {get_resource: docker_volume}
+
+  # Provide access to the Master on the public network
+  floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: {get_param: external_network}
+      port_id: {get_resource: port}
+
+outputs:
+  host:
+    description: A reference to the master host identifier
+    value: {get_resource: host}
+  ip_address:
+    description: IP address of the node
+    value: {get_attr: [floating_ip, floating_ip_address]}

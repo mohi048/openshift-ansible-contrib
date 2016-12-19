@@ -56,36 +56,17 @@ resources:
       router_id: {get_resource: external_router}
       subnet: {get_resource: fixed_subnet}
 
-  test_server_port:
-    type: OS::Neutron::Port
-    properties:
-      security_groups:
-      - {get_resource: test_server_security_group}
-      network: {get_resource: fixed_network}
-      fixed_ips:
-      - subnet: {get_resource: fixed_subnet}
-      replacement_policy: AUTO
-
-  test_server_security_group:
-    type: OS::Neutron::SecurityGroup
-    properties:
-      rules:
-      - protocol: icmp
-      - protocol: tcp
-        port_range_min: 22
-        port_range_max: 22
-
-  test_server_floating_ip:
-    type: OS::Neutron::FloatingIP
-    properties:
-      floating_network: {get_param: external_network}
-      port_id: {get_resource: test_server_port}
-
-  test_server:
-    type: OS::Nova::Server
-    properties:
-      flavor: m1.medium
-      image: centos72
+  master:
+    type: master.yaml
+    parameters:
       key_name: {get_param: ssh_key_name}
-      networks:
-      - port: {get_resource: test_server_port}
+      image: centos72  # TODO
+      flavor: m1.small  # TODO
+      docker_volume_size: 25 # TODO
+      ssh_user: centos
+      external_network: {get_param: external_network}
+      fixed_network: {get_resource: fixed_network}
+      fixed_subnet: {get_resource: fixed_subnet}
+      # internal_network: TODO
+      # master_server_group: TODO
+      master_security_group: todo
