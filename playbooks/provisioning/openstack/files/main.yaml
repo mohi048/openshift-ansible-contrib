@@ -58,7 +58,7 @@ resources:
 
   master:
     type: master.yaml
-    parameters:
+    properties:
       key_name: {get_param: ssh_key_name}
       image: centos72  # TODO
       flavor: m1.small  # TODO
