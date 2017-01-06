@@ -101,7 +101,9 @@ resources:
 
   # Create a network connection on the internal communications network
   internal_port:
-    type: OOShift::ContainerPort
+    # TODO: revert back to the generic/configurable type?
+    # type: OOShift::ContainerPort
+    type: sdn_openshift_sdn.yaml
     properties:
       security_group: {get_param: master_security_group}
       network: {get_param: internal_network}
@@ -118,8 +120,8 @@ resources:
       networks:
       - port: {get_resource: port}
       - port: {get_attr: [internal_port, port]}
-      user_data_format: SOFTWARE_CONFIG
-      user_data: {get_resource: init}
+      # user_data_format: SOFTWARE_CONFIG
+      # user_data: {get_resource: init}
       # TODO: enable these back!
       # scheduler_hints:
       #   group: {get_param: master_server_group}

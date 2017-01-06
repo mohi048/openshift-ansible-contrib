@@ -56,6 +56,79 @@ resources:
       router_id: {get_resource: external_router}
       subnet: {get_resource: fixed_subnet}
 
+  cluster_network:
+    type: OS::Neutron::Net
+
+  cluster_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      cidr: 10.0.0.0/24
+      network: {get_resource: cluster_network}
+      gateway_ip: ""
+
+
+  master_security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      rules:
+      - protocol: icmp
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 22
+        port_range_max: 22
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 4001
+        port_range_max: 4001
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 8443
+        port_range_max: 8443
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 53
+        port_range_max: 53
+      - direction: ingress
+        protocol: udp
+        port_range_min: 53
+        port_range_max: 53
+      - direction: ingress
+        protocol: udp
+        port_range_min: 4789
+        port_range_max: 4789
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 8053
+        port_range_max: 8053
+      - direction: ingress
+        protocol: udp
+        port_range_min: 8053
+        port_range_max: 8053
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 10250
+        port_range_max: 10250
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 24224
+        port_range_max: 24224
+      - direction: ingress
+        protocol: udp
+        port_range_min: 24224
+        port_range_max: 24224
+      # etcd services
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 2379
+        port_range_max: 2379
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 2380
+        port_range_max: 2380
+        remote_mode: remote_group_id
+
+
+
   master:
     type: master.yaml
     properties:
@@ -67,6 +140,13 @@ resources:
       external_network: {get_param: external_network}
       fixed_network: {get_resource: fixed_network}
       fixed_subnet: {get_resource: fixed_subnet}
-      # internal_network: TODO
+      internal_network: {get_resource: cluster_network}
+      internal_subnet: {get_resource: cluster_subnet}
       # master_server_group: TODO
-      master_security_group: todo
+      master_security_group: {get_resource: master_security_group}
+
+
+  master_load_balancer:
+    type: OS::Neutron::LBaaS::LoadBalancer
+    properties:
+      vip_subnet: {get_resource: fixed_subnet}

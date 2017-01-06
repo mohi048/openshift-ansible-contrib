@@ -10,3 +10,9 @@ Requirements
 * Shade >= 1.8.0
   - a Python library to talk to the OpenStack APIs
   - the `os_stack` module depends on it
+
+LBaaS v2
+--------
+
+http://docs.openstack.org/newton/networking-guide/config-lbaas.html
+
