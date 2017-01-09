@@ -14,12 +14,6 @@ parameters:
     constraints:
     - custom_constraint: neutron.network
 
-  internal_subnet:
-    type: string
-    description: >
-      The subnet used for openshift node-node and node-master communication
-    default: 192.168.0.0/24
-
   dns_nameserver:
     type: comma_delimited_list
     description: Addresses of a dns nameserver reachable in your environment
@@ -34,15 +28,15 @@ parameters:
 resources:
 
   # Network Components
-  fixed_network:
+  control_network:
     type: OS::Neutron::Net
 
-  fixed_subnet:
+  control_subnet:
     type: OS::Neutron::Subnet
     properties:
-      cidr: {get_param: internal_subnet}
+      cidr: 192.168.0.0/24
       dns_nameservers: {get_param: dns_nameserver}
-      network: {get_resource: fixed_network}
+      network: {get_resource: control_network}
 
   external_router:
     type: OS::Neutron::Router
@@ -54,16 +48,16 @@ resources:
     type: OS::Neutron::RouterInterface
     properties:
       router_id: {get_resource: external_router}
-      subnet: {get_resource: fixed_subnet}
+      subnet: {get_resource: control_subnet}
 
-  cluster_network:
+  tenant_network:
     type: OS::Neutron::Net
 
-  cluster_subnet:
+  tenant_subnet:
     type: OS::Neutron::Subnet
     properties:
       cidr: 10.0.0.0/24
-      network: {get_resource: cluster_network}
+      network: {get_resource: tenant_network}
       gateway_ip: ""
 
 
@@ -145,10 +139,10 @@ resources:
       docker_volume_size: 25 # TODO
       ssh_user: centos
       external_network: {get_param: external_network}
-      fixed_network: {get_resource: fixed_network}
-      fixed_subnet: {get_resource: fixed_subnet}
-      internal_network: {get_resource: cluster_network}
-      internal_subnet: {get_resource: cluster_subnet}
+      control_network: {get_resource: control_network}
+      control_subnet: {get_resource: control_subnet}
+      tenant_network: {get_resource: tenant_network}
+      tenant_subnet: {get_resource: tenant_subnet}
       # master_server_group: TODO
       master_security_group: {get_resource: master_security_group}
       load_balancer_pool: {get_resource: master_load_balancer_pool}
@@ -164,10 +158,10 @@ resources:
       docker_volume_size: 25 # TODO
       ssh_user: centos
       external_network: {get_param: external_network}
-      fixed_network: {get_resource: fixed_network}
-      fixed_subnet: {get_resource: fixed_subnet}
-      internal_network: {get_resource: cluster_network}
-      internal_subnet: {get_resource: cluster_subnet}
+      control_network: {get_resource: control_network}
+      control_subnet: {get_resource: control_subnet}
+      tenant_network: {get_resource: tenant_network}
+      tenant_subnet: {get_resource: tenant_subnet}
       # master_server_group: TODO
       master_security_group: {get_resource: master_security_group}
       load_balancer_pool: {get_resource: master_load_balancer_pool}
@@ -182,10 +176,10 @@ resources:
       docker_volume_size: 25 # TODO
       ssh_user: centos
       external_network: {get_param: external_network}
-      fixed_network: {get_resource: fixed_network}
-      fixed_subnet: {get_resource: fixed_subnet}
-      internal_network: {get_resource: cluster_network}
-      internal_subnet: {get_resource: cluster_subnet}
+      control_network: {get_resource: control_network}
+      control_subnet: {get_resource: control_subnet}
+      tenant_network: {get_resource: tenant_network}
+      tenant_subnet: {get_resource: tenant_subnet}
       # master_server_group: TODO
       master_security_group: {get_resource: master_security_group}
       load_balancer_pool: {get_resource: master_load_balancer_pool}
@@ -211,7 +205,7 @@ resources:
   master_load_balancer:
     type: OS::Neutron::LBaaS::LoadBalancer
     properties:
-      vip_subnet: {get_resource: fixed_subnet}
+      vip_subnet: {get_resource: control_subnet}
 
   loadbalancer_floating_ip:
     type: OS::Neutron::FloatingIP

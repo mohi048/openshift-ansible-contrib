@@ -47,30 +47,30 @@ parameters:
     constraints:
     - custom_constraint: neutron.network
 
-  fixed_network:
+  control_network:
     description: >
       The name or ID of the admin and public network
     type: string
     constraints:
     - custom_constraint: neutron.network
 
-  fixed_subnet:
+  control_subnet:
     description: >
       The name or ID of the admin and public IPv4 space
     type: string
     constraints:
     - custom_constraint: neutron.subnet
 
-  internal_network:
+  tenant_network:
     description: >
-      The name or ID of the internal network
+      The name or ID of the tenant network for the container traffic
     type: string
     constraints:
     - custom_constraint: neutron.network
 
-  internal_subnet:
+  tenant_subnet:
     description: >
-      The name or ID of the internal IPv4 space
+      The name or ID of the tenant IPv4 space
     type: string
     constraints:
     - custom_constraint: neutron.subnet
@@ -93,26 +93,26 @@ parameters:
 
 resources:
 
-  # Create a network connection on the internal communications network
-  port:
+  # Create a network connection on the control communications network
+  control_port:
     type: OS::Neutron::Port
     properties:
       security_groups:
       - {get_param: master_security_group}
-      network: {get_param: fixed_network}
+      network: {get_param: control_network}
       fixed_ips:
-      - subnet: {get_param: fixed_subnet}
+      - subnet: {get_param: control_subnet}
       replacement_policy: AUTO
 
-  # Create a network connection on the internal communications network
-  internal_port:
+  # Create a network connection on the tenant communications network
+  tenant_port:
     # TODO: revert back to the generic/configurable type?
     # type: OOShift::ContainerPort
     type: sdn_openshift_sdn.yaml
     properties:
       security_group: {get_param: master_security_group}
-      network: {get_param: internal_network}
-      subnet: {get_param: internal_subnet}
+      network: {get_param: tenant_network}
+      subnet: {get_param: tenant_subnet}
 
   # Create the VM instance to host the OpenShift master service
   host:
@@ -123,8 +123,8 @@ resources:
       flavor: {get_param: flavor}
       key_name: {get_param: key_name}
       networks:
-      - port: {get_resource: port}
-      - port: {get_attr: [internal_port, port]}
+      - port: {get_resource: control_port}
+      - port: {get_attr: [tenant_port, port]}
       # user_data_format: SOFTWARE_CONFIG
       # user_data: {get_resource: init}
       # TODO: enable these back!
@@ -149,7 +149,7 @@ resources:
     type: OS::Neutron::FloatingIP
     properties:
       floating_network: {get_param: external_network}
-      port_id: {get_resource: port}
+      port_id: {get_resource: control_port}
 
   pool_member:
     type: OS::Neutron::LBaaS::PoolMember
@@ -157,7 +157,7 @@ resources:
       pool: { get_param: load_balancer_pool }
       address: {get_attr: [floating_ip, floating_ip_address]}
       protocol_port: 80
-      subnet: {get_param: fixed_subnet}
+      subnet: {get_param: control_subnet}
 
 
 outputs:
