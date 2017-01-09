@@ -72,6 +72,13 @@ resources:
     properties:
       rules:
       - protocol: icmp
+
+      # TODO(shadower): for testing only, remove this port
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 80
+        port_range_max: 80
+
       - direction: ingress
         protocol: tcp
         port_range_min: 22
@@ -144,9 +151,74 @@ resources:
       internal_subnet: {get_resource: cluster_subnet}
       # master_server_group: TODO
       master_security_group: {get_resource: master_security_group}
+      load_balancer_pool: {get_resource: master_load_balancer_pool}
+
+
+
+  m2:
+    type: master.yaml
+    properties:
+      key_name: {get_param: ssh_key_name}
+      image: centos72  # TODO
+      flavor: m1.small  # TODO
+      docker_volume_size: 25 # TODO
+      ssh_user: centos
+      external_network: {get_param: external_network}
+      fixed_network: {get_resource: fixed_network}
+      fixed_subnet: {get_resource: fixed_subnet}
+      internal_network: {get_resource: cluster_network}
+      internal_subnet: {get_resource: cluster_subnet}
+      # master_server_group: TODO
+      master_security_group: {get_resource: master_security_group}
+      load_balancer_pool: {get_resource: master_load_balancer_pool}
+
+
+  m3:
+    type: master.yaml
+    properties:
+      key_name: {get_param: ssh_key_name}
+      image: centos72  # TODO
+      flavor: m1.small  # TODO
+      docker_volume_size: 25 # TODO
+      ssh_user: centos
+      external_network: {get_param: external_network}
+      fixed_network: {get_resource: fixed_network}
+      fixed_subnet: {get_resource: fixed_subnet}
+      internal_network: {get_resource: cluster_network}
+      internal_subnet: {get_resource: cluster_subnet}
+      # master_server_group: TODO
+      master_security_group: {get_resource: master_security_group}
+      load_balancer_pool: {get_resource: master_load_balancer_pool}
+
+
+
+
+  master_load_balancer_pool:
+    type: OS::Neutron::LBaaS::Pool
+    properties:
+      lb_algorithm: ROUND_ROBIN
+      protocol: HTTP
+      listener: { get_resource: listener }
+
+  listener:
+    type: OS::Neutron::LBaaS::Listener
+    properties:
+      loadbalancer: { get_resource: master_load_balancer }
+      protocol: HTTP
+      protocol_port: 80
 
 
   master_load_balancer:
     type: OS::Neutron::LBaaS::LoadBalancer
     properties:
       vip_subnet: {get_resource: fixed_subnet}
+
+  loadbalancer_floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: { get_param: external_network }
+      port_id: { get_attr: [master_load_balancer, vip_port_id ]}
+
+outputs:
+  master_node_api:
+    value: { get_attr: [ loadbalancer_floating_ip, floating_ip_address ] }

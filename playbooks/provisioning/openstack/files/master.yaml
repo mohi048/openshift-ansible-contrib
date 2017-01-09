@@ -86,6 +86,11 @@ parameters:
       ID of the network access policies for the OpenShift master hosts
     type: string
 
+  load_balancer_pool:
+    description: >
+      The pool of the load balancer to add the servers to.
+    type: string
+
 resources:
 
   # Create a network connection on the internal communications network
@@ -145,6 +150,15 @@ resources:
     properties:
       floating_network: {get_param: external_network}
       port_id: {get_resource: port}
+
+  pool_member:
+    type: OS::Neutron::LBaaS::PoolMember
+    properties:
+      pool: { get_param: load_balancer_pool }
+      address: {get_attr: [floating_ip, floating_ip_address]}
+      protocol_port: 80
+      subnet: {get_param: fixed_subnet}
+
 
 outputs:
   host:
