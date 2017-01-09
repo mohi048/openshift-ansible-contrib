@@ -86,9 +86,18 @@ parameters:
       ID of the network access policies for the OpenShift master hosts
     type: string
 
-  load_balancer_pool:
+  api_port:
+    type: number
+    description: The port number for the OpenShift API
+
+  external_lb_pool:
     description: >
-      The pool of the load balancer to add the servers to.
+      The pool for the load balancer for the external API traffic
+    type: string
+
+  internal_lb_pool:
+    description: >
+      The pool of the load balancer for the internal API traffic
     type: string
 
 resources:
@@ -151,12 +160,20 @@ resources:
       floating_network: {get_param: external_network}
       port_id: {get_resource: control_port}
 
-  pool_member:
+  external_lbpool_member:
     type: OS::Neutron::LBaaS::PoolMember
     properties:
-      pool: { get_param: load_balancer_pool }
+      pool: { get_param: external_lb_pool }
       address: {get_attr: [floating_ip, floating_ip_address]}
-      protocol_port: 80
+      protocol_port: { get_param: api_port}
+      subnet: {get_param: control_subnet}
+
+  internal_lbpool_member:
+    type: OS::Neutron::LBaaS::PoolMember
+    properties:
+      pool: { get_param: internal_lb_pool }
+      address: {get_attr: [floating_ip, floating_ip_address]}
+      protocol_port: { get_param: api_port}
       subnet: {get_param: control_subnet}
 
 

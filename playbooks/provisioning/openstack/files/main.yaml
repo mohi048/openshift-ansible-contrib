@@ -25,6 +25,11 @@ parameters:
     constraints:
     - custom_constraint: nova.keypair
 
+  api_port:
+    type: number
+    description: The port number for the OpenShift API
+    default: 443
+
 resources:
 
   # Network Components
@@ -38,6 +43,8 @@ resources:
       dns_nameservers: {get_param: dns_nameserver}
       network: {get_resource: control_network}
 
+
+
   external_router:
     type: OS::Neutron::Router
     properties:
@@ -49,6 +56,8 @@ resources:
     properties:
       router_id: {get_resource: external_router}
       subnet: {get_resource: control_subnet}
+
+
 
   tenant_network:
     type: OS::Neutron::Net
@@ -67,11 +76,10 @@ resources:
       rules:
       - protocol: icmp
 
-      # TODO(shadower): for testing only, remove this port
       - direction: ingress
         protocol: tcp
-        port_range_min: 80
-        port_range_max: 80
+        port_range_min: { get_param: api_port}
+        port_range_max: { get_param: api_port}
 
       - direction: ingress
         protocol: tcp
@@ -149,35 +157,57 @@ resources:
           tenant_subnet: {get_resource: tenant_subnet}
           # master_server_group: TODO
           master_security_group: {get_resource: master_security_group}
-          load_balancer_pool: {get_resource: master_load_balancer_pool}
+          external_lb_pool: {get_resource: external_lb_pool}
+          internal_lb_pool: {get_resource: internal_lb_pool}
 
 
-  master_load_balancer_pool:
-    type: OS::Neutron::LBaaS::Pool
-    properties:
-      lb_algorithm: ROUND_ROBIN
-      protocol: HTTP
-      listener: { get_resource: listener }
 
-  listener:
-    type: OS::Neutron::LBaaS::Listener
-    properties:
-      loadbalancer: { get_resource: master_load_balancer }
-      protocol: HTTP
-      protocol_port: 80
-
-
-  master_load_balancer:
+  external_load_balancer:
     type: OS::Neutron::LBaaS::LoadBalancer
     properties:
       vip_subnet: {get_resource: control_subnet}
 
-  loadbalancer_floating_ip:
+  external_lb_listener:
+    type: OS::Neutron::LBaaS::Listener
+    properties:
+      loadbalancer: { get_resource: external_load_balancer }
+      protocol: HTTP
+      protocol_port: { get_param: api_port }
+
+  external_lb_pool:
+    type: OS::Neutron::LBaaS::Pool
+    properties:
+      lb_algorithm: ROUND_ROBIN
+      protocol: HTTP
+      listener: { get_resource: external_lb_listener }
+
+  external_lb_floating_ip:
     type: OS::Neutron::FloatingIP
     properties:
       floating_network: { get_param: external_network }
-      port_id: { get_attr: [master_load_balancer, vip_port_id ]}
+      port_id: { get_attr: [external_load_balancer, vip_port_id ]}
+
+
+
+  internal_load_balancer:
+    type: OS::Neutron::LBaaS::LoadBalancer
+    properties:
+      vip_subnet: {get_resource: control_subnet}
+
+  internal_lb_listener:
+    type: OS::Neutron::LBaaS::Listener
+    properties:
+      loadbalancer: { get_resource: internal_load_balancer }
+      protocol: HTTP
+      protocol_port: { get_param: api_port }
+
+  internal_lb_pool:
+    type: OS::Neutron::LBaaS::Pool
+    properties:
+      lb_algorithm: ROUND_ROBIN
+      protocol: HTTP
+      listener: { get_resource: internal_lb_listener }
 
 outputs:
   master_node_api:
-    value: { get_attr: [ loadbalancer_floating_ip, floating_ip_address ] }
+    value: { get_attr: [ external_lb_floating_ip, floating_ip_address ] }
