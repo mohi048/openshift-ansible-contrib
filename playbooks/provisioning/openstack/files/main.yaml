@@ -141,14 +141,16 @@ resources:
   master_nodes:
     type: OS::Heat::ResourceGroup
     properties:
-      count: 3
+      count: 1
       resource_def:
         type: master.yaml
         properties:
           key_name: {get_param: ssh_key_name}
           image: centos72  # TODO
           flavor: m1.small  # TODO
+          root_volume_size: 10 # TODO
           docker_volume_size: 25 # TODO
+          etcd_volume_size: 25 # TODO
           ssh_user: centos
           external_network: {get_param: external_network}
           control_network: {get_resource: control_network}

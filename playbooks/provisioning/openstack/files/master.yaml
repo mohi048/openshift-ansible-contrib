@@ -28,12 +28,21 @@ parameters:
     constraints:
     - custom_constraint: nova.flavor
 
+  root_volume_size:
+    description: >
+      Size of the root partition
+    type: number
+
   docker_volume_size:
     description: >
-      size of a cinder volume in GB to allocate to docker for container/image
-      storage
+      Size of a cinder volume in GB to allocate to docker for
+      container/image storage
     type: number
-    default: 25
+
+  etcd_volume_size:
+    description: >
+      Size of a cinder volume in GB to allocate to etcd storage
+    type: number
 
   ssh_user:
     description: >
@@ -128,12 +137,17 @@ resources:
     type: OS::Nova::Server
     properties:
       admin_user: {get_param: ssh_user}
-      image: {get_param: image}
       flavor: {get_param: flavor}
       key_name: {get_param: key_name}
       networks:
       - port: {get_resource: control_port}
       - port: {get_attr: [tenant_port, port]}
+      block_device_mapping_v2:
+      # Create a volume for the root partition:
+      - image: {get_param: image}
+        device_name: vda
+        volume_size: {get_param: root_volume_size}
+        delete_on_termination: true
       # user_data_format: SOFTWARE_CONFIG
       # user_data: {get_resource: init}
       # TODO: enable these back!
@@ -152,6 +166,19 @@ resources:
     properties:
       instance_uuid: {get_resource: host}
       volume_id: {get_resource: docker_volume}
+      mountpoint: /dev/xvdb
+
+  etcd_volume:
+    type: OS::Cinder::Volume
+    properties:
+      size: {get_param: etcd_volume_size}
+
+  etcd_volume_attach:
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      instance_uuid: {get_resource: host}
+      volume_id: {get_resource: etcd_volume}
+      mountpoint: /dev/xvdc
 
   # Provide access to the Master on the public network
   floating_ip:
