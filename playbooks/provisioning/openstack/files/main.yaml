@@ -157,6 +157,7 @@ resources:
           tenant_subnet: {get_resource: tenant_subnet}
           # master_server_group: TODO
           master_security_group: {get_resource: master_security_group}
+          api_port: {get_param: api_port}
           external_lb_pool: {get_resource: external_lb_pool}
           internal_lb_pool: {get_resource: internal_lb_pool}
 
