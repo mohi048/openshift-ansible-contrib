@@ -1,0 +1,48 @@
+heat_template_version: 2016-10-14
+
+parameters:
+
+  docker_volume_size:
+    description: >
+      Size of a cinder volume in GB to allocate to docker for
+      container/image storage
+    type: number
+
+  etcd_volume_size:
+    description: >
+      Size of a cinder volume in GB to allocate to etcd storage
+    type: number
+
+resources:
+
+  docker_volume:
+    type: OS::Cinder::Volume
+    properties:
+      size: {get_param: docker_volume_size}
+
+  etcd_volume:
+    type: OS::Cinder::Volume
+    properties:
+      size: {get_param: etcd_volume_size}
+
+outputs:
+
+  docker_volume:
+    value: {get_resource: docker_volume}
+
+  docker_volume_device:
+    value:
+      yaql:
+        expression: concat("/dev/disk/by-id/virtio-", $.data.uuid.substring(0, 20))
+        data:
+          uuid: {get_resource: docker_volume}
+
+  etcd_volume:
+    value: {get_resource: etcd_volume}
+
+  etcd_volume_device:
+    value:
+      yaql:
+        expression: concat("/dev/disk/by-id/virtio-", $.data.uuid.substring(0, 20))
+        data:
+          uuid: {get_resource: etcd_volume}

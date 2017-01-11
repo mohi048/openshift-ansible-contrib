@@ -1,4 +1,4 @@
-heat_template_version: 2014-10-16
+heat_template_version: 2016-10-14
 
 description: >
   Prepare the environment (servers, networks, security groups, etc.)
@@ -141,7 +141,7 @@ resources:
   master_nodes:
     type: OS::Heat::ResourceGroup
     properties:
-      count: 1
+      count: 3
       resource_def:
         type: master.yaml
         properties:

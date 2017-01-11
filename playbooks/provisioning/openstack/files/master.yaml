@@ -1,4 +1,4 @@
-heat_template_version: 2014-10-16
+heat_template_version: 2016-10-14
 
 
 description: >
@@ -148,37 +148,74 @@ resources:
         device_name: vda
         volume_size: {get_param: root_volume_size}
         delete_on_termination: true
-      # user_data_format: SOFTWARE_CONFIG
-      # user_data: {get_resource: init}
+      user_data_format: SOFTWARE_CONFIG
+      user_data: {get_resource: cloud_init}
       # TODO: enable these back!
       # scheduler_hints:
       #   group: {get_param: master_server_group}
 
-  # Create space for Docker containers and images
-  docker_volume:
-    type: OS::Cinder::Volume
+  cloud_init:
+    type: OS::Heat::MultipartMime
     properties:
-      size: {get_param: docker_volume_size}
+      parts:
+      - config: {get_resource: server_config}
+
+  # TODO: it doesn't like the yaql stuff here.
+  server_config:
+    type: OS::Heat::CloudConfig
+    properties:
+      cloud_config:
+        cloud_config_modules:
+        - disk_setup
+        - mounts
+        fs_setup:
+        - label: etcd_storage
+          filesystem: xfs
+          device: {get_attr: [volumes, etcd_volume_device]}
+          partition: auto
+        runcmd:
+        - mkdir -p /var/lib/etcd
+        mounts:
+        - - {get_attr: [volumes, etcd_volume_device]}
+          - /var/lib/etcd
+          - xfs
+          - defaults
+        write_files:
+        - content:
+            str_replace:
+              template: |
+                DEVS='DOCKER_VOLUME_DEVICE'
+                VG=docker_vol
+                DATA_SIZE=95%VG
+                EXTRA_DOCKER_STORAGE_OPTIONS="--storage-opt dm.basesize=3G"
+              params:
+                DOCKER_VOLUME_DEVICE: {get_attr: [volumes, docker_volume_device]}
+          path: /etc/sysconfig/docker-storage-setup
+          owner: root:root
+
+
+  # Create the docker and etcd volumes.
+  #
+  # We use a nested resource here to get the block device filesystem
+  # path in an output. Calculating it in Heat is a bit verbose.
+  volumes:
+    type: master_volumes.yaml
+    properties:
+      docker_volume_size: {get_param: docker_volume_size}
+      etcd_volume_size: {get_param: etcd_volume_size}
 
   # Bind the docker storage to the VM
   docker_volume_attach:
     type: OS::Cinder::VolumeAttachment
     properties:
       instance_uuid: {get_resource: host}
-      volume_id: {get_resource: docker_volume}
-      mountpoint: /dev/xvdb
-
-  etcd_volume:
-    type: OS::Cinder::Volume
-    properties:
-      size: {get_param: etcd_volume_size}
+      volume_id: {get_attr: [volumes, docker_volume]}
 
   etcd_volume_attach:
     type: OS::Cinder::VolumeAttachment
     properties:
       instance_uuid: {get_resource: host}
-      volume_id: {get_resource: etcd_volume}
-      mountpoint: /dev/xvdc
+      volume_id: {get_attr: [volumes, etcd_volume]}
 
   # Provide access to the Master on the public network
   floating_ip:
