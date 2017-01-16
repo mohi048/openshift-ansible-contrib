@@ -69,15 +69,13 @@ resources:
         port_range_min: 22
         port_range_max: 22
 
-
-  # Network Components
   control_network:
     type: OS::Neutron::Net
 
   control_subnet:
     type: OS::Neutron::Subnet
     properties:
-      cidr: 192.168.0.0/24
+      cidr: 172.18.10.0/24
       dns_nameservers: {get_param: dns_nameserver}
       network: {get_resource: control_network}
 

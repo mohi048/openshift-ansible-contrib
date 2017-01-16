@@ -38,3 +38,6 @@ outputs:
   port:
     description: A reference to the created port
     value: {get_resource: security_group_port}
+  ip_address:
+    description: The IP address associated with the port
+    value: {get_attr: [security_group_port, fixed_ips, 0, ip_address]}
