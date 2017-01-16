@@ -56,6 +56,25 @@ parameters:
     constraints:
     - custom_constraint: neutron.network
 
+  provisioning_network:
+    description: >
+      The name or ID of the tenant IPv4 space
+    type: string
+    constraints:
+    - custom_constraint: neutron.network
+
+  provisioning_subnet:
+    description: >
+      The name or ID of the tenant IPv4 space
+    type: string
+    constraints:
+    - custom_constraint: neutron.subnet
+
+  provisioning_security_group:
+    description: >
+      ID of the network access policies for the OpenShift app node hosts
+    type: string
+
   control_network:
     description: >
       The name or ID of the admin and public network
@@ -97,6 +116,22 @@ parameters:
 
 resources:
 
+  provisioning_port:
+    type: OS::Neutron::Port
+    properties:
+      security_groups:
+      - {get_param: provisioning_security_group}
+      network: {get_param: provisioning_network}
+      fixed_ips:
+      - subnet: {get_param: provisioning_subnet}
+      replacement_policy: AUTO
+
+  floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: {get_param: external_network}
+      port_id: {get_resource: provisioning_port}
+
   # Create a network connection on the control communications network
   control_port:
     type: OS::Neutron::Port
@@ -116,6 +151,7 @@ resources:
       flavor: {get_param: flavor}
       key_name: {get_param: key_name}
       networks:
+      - port: {get_resource: provisioning_port}
       - port: {get_resource: control_port}
       block_device_mapping_v2:
       # Create a volume for the root partition:
@@ -190,13 +226,6 @@ resources:
     properties:
       instance_uuid: {get_resource: host}
       volume_id: {get_attr: [volumes, etcd_volume]}
-
-  # Provide access to the Master on the public network
-  floating_ip:
-    type: OS::Neutron::FloatingIP
-    properties:
-      floating_network: {get_param: external_network}
-      port_id: {get_resource: control_port}
 
   external_lbpool_member:
     type: OS::Neutron::LBaaS::PoolMember

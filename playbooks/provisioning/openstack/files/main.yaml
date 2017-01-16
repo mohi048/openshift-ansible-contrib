@@ -36,7 +36,6 @@ resources:
   # floating IP addresses to install/update Openshift using
   # openshift-ansible. The idea is that it can be blocked after that's
   # done.
-
   provisioning_network:
     type: OS::Neutron::Net
 
@@ -82,17 +81,17 @@ resources:
       dns_nameservers: {get_param: dns_nameserver}
       network: {get_resource: control_network}
 
-  # control_router:
-  #   type: OS::Neutron::Router
-  #   properties:
-  #     external_gateway_info:
-  #       network: {get_param: external_network}
+  control_router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info:
+        network: {get_param: external_network}
 
-  # control_router_interface:
-  #   type: OS::Neutron::RouterInterface
-  #   properties:
-  #     router_id: {get_resource: control_router}
-  #     subnet: {get_resource: control_subnet}
+  control_router_interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: {get_resource: control_router}
+      subnet: {get_resource: control_subnet}
 
 
   tenant_network:
@@ -116,11 +115,6 @@ resources:
         protocol: tcp
         port_range_min: { get_param: api_port}
         port_range_max: { get_param: api_port}
-
-      - direction: ingress
-        protocol: tcp
-        port_range_min: 22
-        port_range_max: 22
       - direction: ingress
         protocol: tcp
         port_range_min: 4001
@@ -178,111 +172,108 @@ resources:
     properties:
       rules:
       - protocol: icmp
-
       - direction: ingress
         protocol: tcp
-        port_range_min: 22
-        port_range_max: 22
+        port_range_min: { get_param: api_port}
+        port_range_max: { get_param: api_port}
 
 
-  # master_nodes:
-  #   type: OS::Heat::ResourceGroup
-  #   properties:
-  #     count: 1
-  #     resource_def:
-  #       type: master.yaml
-  #       properties:
-  #         key_name: {get_param: ssh_key_name}
-  #         image: centos72  # TODO
-  #         flavor: m1.small  # TODO
-  #         root_volume_size: 10 # TODO
-  #         docker_volume_size: 25 # TODO
-  #         etcd_volume_size: 25 # TODO
-  #         ssh_user: centos
-  #         external_network: {get_param: external_network}
-  #         provisioning_network: {get_resource: provisioning_network}
-  #         provisioning_subnet: {get_resource: provisioning_subnet}
-  #         provisioning_security_group: {get_resource: provisioning_security_group}
-  #         control_network: {get_resource: control_network}
-  #         control_subnet: {get_resource: control_subnet}
-  #         tenant_network: {get_resource: tenant_network}
-  #         tenant_subnet: {get_resource: tenant_subnet}
-  #         # master_server_group: TODO
-  #         master_security_group: {get_resource: master_security_group}
-  #         api_port: {get_param: api_port}
-  #         external_lb_pool: {get_resource: external_lb_pool}
-  #         internal_lb_pool: {get_resource: internal_lb_pool}
+  master_nodes:
+    type: OS::Heat::ResourceGroup
+    properties:
+      count: 1
+      resource_def:
+        type: master.yaml
+        properties:
+          key_name: {get_param: ssh_key_name}
+          image: centos72  # TODO
+          flavor: m1.small  # TODO
+          root_volume_size: 10 # TODO
+          docker_volume_size: 25 # TODO
+          etcd_volume_size: 25 # TODO
+          ssh_user: centos
+          external_network: {get_param: external_network}
+          provisioning_network: {get_resource: provisioning_network}
+          provisioning_subnet: {get_resource: provisioning_subnet}
+          provisioning_security_group: {get_resource: provisioning_security_group}
+          control_network: {get_resource: control_network}
+          control_subnet: {get_resource: control_subnet}
+          # master_server_group: TODO
+          master_security_group: {get_resource: master_security_group}
+          api_port: {get_param: api_port}
+          external_lb_pool: {get_resource: external_lb_pool}
+          internal_lb_pool: {get_resource: internal_lb_pool}
 
   app_nodes:
-    # type: OS::Heat::ResourceGroup
-    # properties:
-    #   count: 1
-    #   resource_def:
-    type: app_node.yaml
+    type: OS::Heat::ResourceGroup
     properties:
-      key_name: {get_param: ssh_key_name}
-      image: centos72  # TODO
-      flavor: m1.small  # TODO
-      root_volume_size: 10 # TODO
-      docker_volume_size: 25 # TODO
-      ssh_user: centos
-      external_network: {get_param: external_network}
-      provisioning_network: {get_resource: provisioning_network}
-      provisioning_subnet: {get_resource: provisioning_subnet}
-      provisioning_security_group: {get_resource: provisioning_security_group}
-      control_network: {get_resource: control_network}
-      control_subnet: {get_resource: control_subnet}
-      tenant_network: {get_resource: tenant_network}
-      tenant_subnet: {get_resource: tenant_subnet}
-      security_group: {get_resource: app_node_security_group}
+      count: 1
+      resource_def:
+        type: app_node.yaml
+        properties:
+          key_name: {get_param: ssh_key_name}
+          image: centos72  # TODO
+          flavor: m1.small  # TODO
+          root_volume_size: 10 # TODO
+          docker_volume_size: 25 # TODO
+          ssh_user: centos
+          external_network: {get_param: external_network}
+          provisioning_network: {get_resource: provisioning_network}
+          provisioning_subnet: {get_resource: provisioning_subnet}
+          provisioning_security_group: {get_resource: provisioning_security_group}
+          control_network: {get_resource: control_network}
+          control_subnet: {get_resource: control_subnet}
+          tenant_network: {get_resource: tenant_network}
+          tenant_subnet: {get_resource: tenant_subnet}
+          security_group: {get_resource: app_node_security_group}
 
 
-  # external_load_balancer:
-  #   type: OS::Neutron::LBaaS::LoadBalancer
-  #   properties:
-  #     vip_subnet: {get_resource: control_subnet}
+  external_load_balancer:
+    type: OS::Neutron::LBaaS::LoadBalancer
+    properties:
+      vip_subnet: {get_resource: control_subnet}
 
-  # external_lb_listener:
-  #   type: OS::Neutron::LBaaS::Listener
-  #   properties:
-  #     loadbalancer: { get_resource: external_load_balancer }
-  #     protocol: HTTP
-  #     protocol_port: { get_param: api_port }
+  external_lb_listener:
+    type: OS::Neutron::LBaaS::Listener
+    properties:
+      loadbalancer: { get_resource: external_load_balancer }
+      protocol: HTTP
+      protocol_port: { get_param: api_port }
 
-  # external_lb_pool:
-  #   type: OS::Neutron::LBaaS::Pool
-  #   properties:
-  #     lb_algorithm: ROUND_ROBIN
-  #     protocol: HTTP
-  #     listener: { get_resource: external_lb_listener }
+  external_lb_pool:
+    type: OS::Neutron::LBaaS::Pool
+    properties:
+      lb_algorithm: ROUND_ROBIN
+      protocol: HTTP
+      listener: { get_resource: external_lb_listener }
 
-  # external_lb_floating_ip:
-  #   type: OS::Neutron::FloatingIP
-  #   properties:
-  #     floating_network: { get_param: external_network }
-  #     port_id: { get_attr: [external_load_balancer, vip_port_id ]}
+  external_lb_floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: { get_param: external_network }
+      port_id: { get_attr: [external_load_balancer, vip_port_id ]}
 
 
 
-  # internal_load_balancer:
-  #   type: OS::Neutron::LBaaS::LoadBalancer
-  #   properties:
-  #     vip_subnet: {get_resource: control_subnet}
+  internal_load_balancer:
+    type: OS::Neutron::LBaaS::LoadBalancer
+    properties:
+      vip_subnet: {get_resource: control_subnet}
 
-  # internal_lb_listener:
-  #   type: OS::Neutron::LBaaS::Listener
-  #   properties:
-  #     loadbalancer: { get_resource: internal_load_balancer }
-  #     protocol: HTTP
-  #     protocol_port: { get_param: api_port }
+  internal_lb_listener:
+    type: OS::Neutron::LBaaS::Listener
+    properties:
+      loadbalancer: { get_resource: internal_load_balancer }
+      protocol: HTTP
+      protocol_port: { get_param: api_port }
 
-  # internal_lb_pool:
-  #   type: OS::Neutron::LBaaS::Pool
-  #   properties:
-  #     lb_algorithm: ROUND_ROBIN
-  #     protocol: HTTP
-  #     listener: { get_resource: internal_lb_listener }
+  internal_lb_pool:
+    type: OS::Neutron::LBaaS::Pool
+    properties:
+      lb_algorithm: ROUND_ROBIN
+      protocol: HTTP
+      listener: { get_resource: internal_lb_listener }
 
 outputs:
-  # master_node_api:
-  #   value: { get_attr: [ external_lb_floating_ip, floating_ip_address ] }
+  master_node_api:
+    value: { get_attr: [ external_lb_floating_ip, floating_ip_address ] }

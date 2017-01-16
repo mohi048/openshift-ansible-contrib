@@ -60,7 +60,6 @@ parameters:
     constraints:
     - custom_constraint: neutron.subnet
 
-
   provisioning_security_group:
     description: >
       ID of the network access policies for the OpenShift app node hosts
