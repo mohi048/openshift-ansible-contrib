@@ -70,20 +70,6 @@ parameters:
     constraints:
     - custom_constraint: neutron.subnet
 
-  tenant_network:
-    description: >
-      The name or ID of the tenant network for the container traffic
-    type: string
-    constraints:
-    - custom_constraint: neutron.network
-
-  tenant_subnet:
-    description: >
-      The name or ID of the tenant IPv4 space
-    type: string
-    constraints:
-    - custom_constraint: neutron.subnet
-
   # TODO
   # master_server_group:
   #   description: >
@@ -122,16 +108,6 @@ resources:
       - subnet: {get_param: control_subnet}
       replacement_policy: AUTO
 
-  # Create a network connection on the tenant communications network
-  tenant_port:
-    # TODO: revert back to the generic/configurable type?
-    # type: OOShift::ContainerPort
-    type: sdn_openshift_sdn.yaml
-    properties:
-      security_group: {get_param: master_security_group}
-      network: {get_param: tenant_network}
-      subnet: {get_param: tenant_subnet}
-
   # Create the VM instance to host the OpenShift master service
   host:
     type: OS::Nova::Server
@@ -141,7 +117,6 @@ resources:
       key_name: {get_param: key_name}
       networks:
       - port: {get_resource: control_port}
-      - port: {get_attr: [tenant_port, port]}
       block_device_mapping_v2:
       # Create a volume for the root partition:
       - image: {get_param: image}

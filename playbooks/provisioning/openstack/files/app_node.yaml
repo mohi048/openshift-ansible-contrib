@@ -66,6 +66,20 @@ parameters:
       ID of the network access policies for the OpenShift app node hosts
     type: string
 
+  control_network:
+    description: >
+      The name or ID of the admin and public network
+    type: string
+    constraints:
+    - custom_constraint: neutron.network
+
+  control_subnet:
+    description: >
+      The name or ID of the admin and public IPv4 space
+    type: string
+    constraints:
+    - custom_constraint: neutron.subnet
+
   tenant_network:
     description: >
       The name or ID of the tenant network for the container traffic
@@ -104,6 +118,17 @@ resources:
       floating_network: {get_param: external_network}
       port_id: {get_resource: provisioning_port}
 
+  # Create a network connection on the control communications network
+  control_port:
+    type: OS::Neutron::Port
+    properties:
+      security_groups:
+      - {get_param: security_group}
+      network: {get_param: control_network}
+      fixed_ips:
+      - subnet: {get_param: control_subnet}
+      replacement_policy: AUTO
+
   # Create a network connection on the tenant communications network
   tenant_port:
     # TODO: revert back to the generic/configurable type?
@@ -124,6 +149,7 @@ resources:
       key_name: {get_param: key_name}
       networks:
       - port: {get_resource: provisioning_port}
+      - port: {get_resource: control_port}
       - port: {get_attr: [tenant_port, port]}
       block_device_mapping_v2:
       # Create a volume for the root partition:
