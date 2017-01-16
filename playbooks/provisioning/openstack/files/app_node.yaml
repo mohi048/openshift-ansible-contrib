@@ -1,10 +1,5 @@
 heat_template_version: 2016-10-14
 
-
-description: >
-  OpenShift Master
-
-
 parameters:
 
   key_name:
@@ -39,11 +34,6 @@ parameters:
       container/image storage
     type: number
 
-  etcd_volume_size:
-    description: >
-      Size of a cinder volume in GB to allocate to etcd storage
-    type: number
-
   ssh_user:
     description: >
       The user for SSH access to the VM hosts
@@ -56,19 +46,25 @@ parameters:
     constraints:
     - custom_constraint: neutron.network
 
-  control_network:
+  provisioning_network:
     description: >
-      The name or ID of the admin and public network
+      The name or ID of the tenant IPv4 space
     type: string
     constraints:
     - custom_constraint: neutron.network
 
-  control_subnet:
+  provisioning_subnet:
     description: >
-      The name or ID of the admin and public IPv4 space
+      The name or ID of the tenant IPv4 space
     type: string
     constraints:
     - custom_constraint: neutron.subnet
+
+
+  provisioning_security_group:
+    description: >
+      ID of the network access policies for the OpenShift app node hosts
+    type: string
 
   tenant_network:
     description: >
@@ -84,43 +80,29 @@ parameters:
     constraints:
     - custom_constraint: neutron.subnet
 
-  # TODO
-  # master_server_group:
-  #   description: >
-  #     ID of a server group containing all of the master hosts
-  #   type: string
-
-  master_security_group:
+  security_group:
     description: >
-      ID of the network access policies for the OpenShift master hosts
+      ID of the network access policies for the OpenShift app node hosts
     type: string
 
-  api_port:
-    type: number
-    description: The port number for the OpenShift API
-
-  external_lb_pool:
-    description: >
-      The pool for the load balancer for the external API traffic
-    type: string
-
-  internal_lb_pool:
-    description: >
-      The pool of the load balancer for the internal API traffic
-    type: string
 
 resources:
 
-  # Create a network connection on the control communications network
-  control_port:
+  provisioning_port:
     type: OS::Neutron::Port
     properties:
       security_groups:
-      - {get_param: master_security_group}
-      network: {get_param: control_network}
+      - {get_param: provisioning_security_group}
+      network: {get_param: provisioning_network}
       fixed_ips:
-      - subnet: {get_param: control_subnet}
+      - subnet: {get_param: provisioning_subnet}
       replacement_policy: AUTO
+
+  floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: {get_param: external_network}
+      port_id: {get_resource: provisioning_port}
 
   # Create a network connection on the tenant communications network
   tenant_port:
@@ -128,19 +110,20 @@ resources:
     # type: OOShift::ContainerPort
     type: sdn_openshift_sdn.yaml
     properties:
-      security_group: {get_param: master_security_group}
+      security_group: {get_param: security_group}
       network: {get_param: tenant_network}
       subnet: {get_param: tenant_subnet}
 
+
   # Create the VM instance to host the OpenShift master service
-  host:
+  app_node:
     type: OS::Nova::Server
     properties:
       admin_user: {get_param: ssh_user}
       flavor: {get_param: flavor}
       key_name: {get_param: key_name}
       networks:
-      - port: {get_resource: control_port}
+      - port: {get_resource: provisioning_port}
       - port: {get_attr: [tenant_port, port]}
       block_device_mapping_v2:
       # Create a volume for the root partition:
@@ -150,9 +133,6 @@ resources:
         delete_on_termination: true
       user_data_format: SOFTWARE_CONFIG
       user_data: {get_resource: cloud_init}
-      # TODO: enable these back!
-      # scheduler_hints:
-      #   group: {get_param: master_server_group}
 
   cloud_init:
     type: OS::Heat::MultipartMime
@@ -167,18 +147,6 @@ resources:
         cloud_config_modules:
         - disk_setup
         - mounts
-        fs_setup:
-        - label: etcd_storage
-          filesystem: xfs
-          device: {get_attr: [volumes, etcd_volume_device]}
-          partition: auto
-        runcmd:
-        - mkdir -p /var/lib/etcd
-        mounts:
-        - - {get_attr: [volumes, etcd_volume_device]}
-          - /var/lib/etcd
-          - xfs
-          - defaults
         write_files:
         - content:
             str_replace:
@@ -192,58 +160,14 @@ resources:
           path: /etc/sysconfig/docker-storage-setup
           owner: root:root
 
-
-  # Create the docker and etcd volumes.
-  #
-  # We use a nested resource here to get the block device filesystem
-  # path in an output. Calculating it in Heat is a bit verbose.
   volumes:
-    type: master_volumes.yaml
+    type: node_volumes.yaml
     properties:
       docker_volume_size: {get_param: docker_volume_size}
-      etcd_volume_size: {get_param: etcd_volume_size}
 
   # Bind the docker storage to the VM
   docker_volume_attach:
     type: OS::Cinder::VolumeAttachment
     properties:
-      instance_uuid: {get_resource: host}
+      instance_uuid: {get_resource: app_node}
       volume_id: {get_attr: [volumes, docker_volume]}
-
-  etcd_volume_attach:
-    type: OS::Cinder::VolumeAttachment
-    properties:
-      instance_uuid: {get_resource: host}
-      volume_id: {get_attr: [volumes, etcd_volume]}
-
-  # Provide access to the Master on the public network
-  floating_ip:
-    type: OS::Neutron::FloatingIP
-    properties:
-      floating_network: {get_param: external_network}
-      port_id: {get_resource: control_port}
-
-  external_lbpool_member:
-    type: OS::Neutron::LBaaS::PoolMember
-    properties:
-      pool: { get_param: external_lb_pool }
-      address: {get_attr: [floating_ip, floating_ip_address]}
-      protocol_port: { get_param: api_port}
-      subnet: {get_param: control_subnet}
-
-  internal_lbpool_member:
-    type: OS::Neutron::LBaaS::PoolMember
-    properties:
-      pool: { get_param: internal_lb_pool }
-      address: {get_attr: [floating_ip, floating_ip_address]}
-      protocol_port: { get_param: api_port}
-      subnet: {get_param: control_subnet}
-
-
-outputs:
-  host:
-    description: A reference to the master host identifier
-    value: {get_resource: host}
-  ip_address:
-    description: IP address of the node
-    value: {get_attr: [floating_ip, floating_ip_address]}
