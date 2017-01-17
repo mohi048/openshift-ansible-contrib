@@ -242,12 +242,3 @@ resources:
       address: {get_attr: [floating_ip, floating_ip_address]}
       protocol_port: { get_param: api_port}
       subnet: {get_param: control_subnet}
-
-
-outputs:
-  host:
-    description: A reference to the master host identifier
-    value: {get_resource: host}
-  ip_address:
-    description: IP address of the node
-    value: {get_attr: [floating_ip, floating_ip_address]}
