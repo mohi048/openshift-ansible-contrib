@@ -170,6 +170,7 @@ resources:
     properties:
       parts:
       - config: {get_resource: server_config}
+      - config: {get_resource: interface_setup}
 
   server_config:
     type: OS::Heat::CloudConfig
@@ -202,6 +203,22 @@ resources:
                 DOCKER_VOLUME_DEVICE: {get_attr: [volumes, docker_volume_device]}
           path: /etc/sysconfig/docker-storage-setup
           owner: root:root
+        # Configure the interface to the control network
+        - path: /etc/sysconfig/network-scripts/ifcfg-eth1
+          content:
+            str_replace:
+              template: {get_file: ifcfg-control}
+              params:
+                $IFNAME: eth1
+                $IPADDRESS: {get_attr: [control_port, fixed_ips, 0, ip_address]}
+
+  interface_setup:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config: |
+        #!/bin/bash
+        set -eux
+        ifup eth1
 
 
   # Create the docker and etcd volumes.
