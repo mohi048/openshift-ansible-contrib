@@ -144,7 +144,7 @@ resources:
       replacement_policy: AUTO
 
   # Create the VM instance to host the OpenShift master service
-  host:
+  master:
     type: OS::Nova::Server
     properties:
       admin_user: {get_param: ssh_user}
@@ -218,13 +218,13 @@ resources:
   docker_volume_attach:
     type: OS::Cinder::VolumeAttachment
     properties:
-      instance_uuid: {get_resource: host}
+      instance_uuid: {get_resource: master}
       volume_id: {get_attr: [volumes, docker_volume]}
 
   etcd_volume_attach:
     type: OS::Cinder::VolumeAttachment
     properties:
-      instance_uuid: {get_resource: host}
+      instance_uuid: {get_resource: master}
       volume_id: {get_attr: [volumes, etcd_volume]}
 
   external_lbpool_member:
