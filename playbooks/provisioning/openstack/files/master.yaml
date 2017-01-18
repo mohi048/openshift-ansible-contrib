@@ -182,12 +182,12 @@ resources:
         fs_setup:
         - label: etcd_storage
           filesystem: xfs
-          device: {get_attr: [volumes, etcd_volume_device]}
+          device: {get_attr: [etcd_volume, device_path]}
           partition: auto
         runcmd:
         - mkdir -p /var/lib/etcd
         mounts:
-        - - {get_attr: [volumes, etcd_volume_device]}
+        - - {get_attr: [etcd_volume, device_path]}
           - /var/lib/etcd
           - xfs
           - defaults
@@ -200,7 +200,7 @@ resources:
                 DATA_SIZE=95%VG
                 EXTRA_DOCKER_STORAGE_OPTIONS="--storage-opt dm.basesize=3G"
               params:
-                DOCKER_VOLUME_DEVICE: {get_attr: [volumes, docker_volume_device]}
+                DOCKER_VOLUME_DEVICE: {get_attr: [docker_volume, device_path]}
           path: /etc/sysconfig/docker-storage-setup
           owner: root:root
         # Configure the interface to the control network
@@ -225,24 +225,28 @@ resources:
   #
   # We use a nested resource here to get the block device filesystem
   # path in an output. Calculating it in Heat is a bit verbose.
-  volumes:
-    type: master_volumes.yaml
+  docker_volume:
+    type: volume.yaml
     properties:
-      docker_volume_size: {get_param: docker_volume_size}
-      etcd_volume_size: {get_param: etcd_volume_size}
+      size: {get_param: docker_volume_size}
+
+  etcd_volume:
+    type: volume.yaml
+    properties:
+      size: {get_param: etcd_volume_size}
 
   # Bind the docker storage to the VM
   docker_volume_attach:
     type: OS::Cinder::VolumeAttachment
     properties:
       instance_uuid: {get_resource: master}
-      volume_id: {get_attr: [volumes, docker_volume]}
+      volume_id: {get_attr: [docker_volume, volume]}
 
   etcd_volume_attach:
     type: OS::Cinder::VolumeAttachment
     properties:
       instance_uuid: {get_resource: master}
-      volume_id: {get_attr: [volumes, etcd_volume]}
+      volume_id: {get_attr: [etcd_volume, volume]}
 
   external_lbpool_member:
     type: OS::Neutron::LBaaS::PoolMember

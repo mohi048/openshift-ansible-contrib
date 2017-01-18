@@ -1,0 +1,27 @@
+heat_template_version: 2016-10-14
+
+parameters:
+
+  size:
+    description: >
+      Size of a cinder volume in GB
+    type: number
+
+resources:
+
+  volume:
+    type: OS::Cinder::Volume
+    properties:
+      size: {get_param: size}
+
+outputs:
+
+  volume:
+    value: {get_resource: volume}
+
+  device_path:
+    value:
+      yaql:
+        expression: concat("/dev/disk/by-id/virtio-", $.data.uuid.substring(0, 20))
+        data:
+          uuid: {get_resource: volume}

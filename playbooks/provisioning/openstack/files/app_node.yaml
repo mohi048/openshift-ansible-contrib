@@ -183,7 +183,7 @@ resources:
                 DATA_SIZE=95%VG
                 EXTRA_DOCKER_STORAGE_OPTIONS="--storage-opt dm.basesize=3G"
               params:
-                DOCKER_VOLUME_DEVICE: {get_attr: [volumes, docker_volume_device]}
+                DOCKER_VOLUME_DEVICE: {get_attr: [docker_volume, device_path]}
           owner: root:root
         # Configure the interface to the control network
         - path: /etc/sysconfig/network-scripts/ifcfg-eth1
@@ -210,14 +210,14 @@ resources:
         ifup eth1
         ifup eth2
 
-  volumes:
-    type: node_volumes.yaml
+  docker_volume:
+    type: volume.yaml
     properties:
-      docker_volume_size: {get_param: docker_volume_size}
+      size: {get_param: docker_volume_size}
 
   # Bind the docker storage to the VM
   docker_volume_attach:
     type: OS::Cinder::VolumeAttachment
     properties:
       instance_uuid: {get_resource: app_node}
-      volume_id: {get_attr: [volumes, docker_volume]}
+      volume_id: {get_attr: [docker_volume, volume]}
