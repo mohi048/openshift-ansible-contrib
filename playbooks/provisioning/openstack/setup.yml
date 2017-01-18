@@ -21,6 +21,25 @@
         dns_nameserver:  "{{ openshift_provisioning_openstack_dns_nameserver | default('8.8.8.8') }}"
         external_network: "{{ openshift_provisioning_openstack_external_network | default('public') }}"
         ssh_key_name: "{{ openshift_provisioning_openstack_keyname | default('default') }}"
+
+        master_image: "{{ openshift_provisioning_openstack_master_image | default('rhel73') }}"
+        infra_image: "{{ openshift_provisioning_openstack_infra_image | default('rhel73') }}"
+        app_image: "{{ openshift_provisioning_openstack_app_image | default('rhel73')  }}"
+
+        master_count: "{{ openshift_provisioning_openstack_master_count | default(3) }}"
+        infra_count: "{{ openshift_provisioning_openstack_infra_count | default(2) }}"
+        app_count: "{{ openshift_provisioning_openstack_app_count | default(3) }}"
+
+        master_flavor: "{{ openshift_provisioning_openstack_master_flavor | default('m1.large') }}"
+        infra_flavor: "{{ openshift_provisioning_openstack_infra_flavor | default('m1.large') }}"
+        app_flavor: "{{ openshift_provisioning_openstack_app_flavor | default('m1.large') }}"
+
+        root_volume_size: "{{ openshift_provisioning_openstack_root_volume_size | default(10) }}"
+        docker_volume_size: "{{ openshift_provisioning_openstack_docker_volume_size | default(25) }}"
+        etcd_volume_size: "{{ openshift_provisioning_openstack_etcd_volume_size | default(25) }}"
+
+
+
     register: heat_output
 
   - debug: var=heat_output

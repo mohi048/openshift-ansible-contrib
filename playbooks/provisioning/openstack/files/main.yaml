@@ -30,6 +30,80 @@ parameters:
     description: The port number for the OpenShift API
     default: 443
 
+  master_image:
+    description: >
+      Select a base image to use for the master servers
+    type: string
+    constraints:
+    - custom_constraint: glance.image
+
+  master_count:
+    description: >
+      The number of master servers to create
+    type: number
+
+  master_flavor:
+    description: >
+      The Nova flavor for the master servers
+    type: string
+    constraints:
+    - custom_constraint: nova.flavor
+
+  infra_image:
+    description: >
+      Select a base image to use for the infra servers
+    type: string
+    constraints:
+    - custom_constraint: glance.image
+
+  infra_count:
+    description: >
+      The number of infra servers to create
+    type: number
+
+  infra_flavor:
+    description: >
+      The Nova flavor for the infra servers
+    type: string
+    constraints:
+    - custom_constraint: nova.flavor
+
+  app_image:
+    description: >
+      Select a base image to use for the app servers
+    type: string
+    constraints:
+    - custom_constraint: glance.image
+
+  app_count:
+    description: >
+      The number of app servers to create
+    type: number
+
+  app_flavor:
+    description: >
+      The Nova flavor for the app servers
+    type: string
+    constraints:
+    - custom_constraint: nova.flavor
+
+  root_volume_size:
+    description: >
+      Size of the root partition
+    type: number
+
+  docker_volume_size:
+    description: >
+      Size of a cinder volume in GB to allocate to docker for
+      container/image storage
+    type: number
+
+  etcd_volume_size:
+    description: >
+      Size of a cinder volume in GB to allocate to etcd storage
+    type: number
+
+
 resources:
 
   # NOTE: this network and subnet is to provide SSH access via
@@ -220,16 +294,16 @@ resources:
   master_nodes:
     type: OS::Heat::ResourceGroup
     properties:
-      count: 1
+      count: {get_param: master_count}
       resource_def:
         type: master.yaml
         properties:
           key_name: {get_param: ssh_key_name}
-          image: centos72  # TODO
-          flavor: m1.small  # TODO
-          root_volume_size: 10 # TODO
-          docker_volume_size: 25 # TODO
-          etcd_volume_size: 25 # TODO
+          image: {get_param: master_image}
+          flavor: {get_param: master_flavor}
+          root_volume_size: {get_param: root_volume_size}
+          docker_volume_size: {get_param: docker_volume_size}
+          etcd_volume_size: {get_param: etcd_volume_size}
           ssh_user: centos
           external_network: {get_param: external_network}
           provisioning_network: {get_resource: provisioning_network}
@@ -246,15 +320,15 @@ resources:
   infra_nodes:
     type: OS::Heat::ResourceGroup
     properties:
-      count: 1
+      count: {get_param: infra_count}
       resource_def:
         type: infra_node.yaml
         properties:
           key_name: {get_param: ssh_key_name}
-          image: centos72  # TODO
-          flavor: m1.small  # TODO
-          root_volume_size: 10 # TODO
-          docker_volume_size: 25 # TODO
+          image: {get_param: infra_image}
+          flavor: {get_param: infra_flavor}
+          root_volume_size: {get_param: root_volume_size}
+          docker_volume_size: {get_param: docker_volume_size}
           ssh_user: centos
           external_network: {get_param: external_network}
           provisioning_network: {get_resource: provisioning_network}
@@ -269,15 +343,15 @@ resources:
   app_nodes:
     type: OS::Heat::ResourceGroup
     properties:
-      count: 1
+      count: {get_param: app_count}
       resource_def:
         type: app_node.yaml
         properties:
           key_name: {get_param: ssh_key_name}
-          image: centos72  # TODO
-          flavor: m1.small  # TODO
-          root_volume_size: 10 # TODO
-          docker_volume_size: 25 # TODO
+          image: {get_param: app_image}
+          flavor: {get_param: app_flavor}
+          root_volume_size: {get_param: root_volume_size}
+          docker_volume_size: {get_param: docker_volume_size}
           ssh_user: centos
           external_network: {get_param: external_network}
           provisioning_network: {get_resource: provisioning_network}
