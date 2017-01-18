@@ -108,19 +108,7 @@ resources:
     properties:
       rules:
       - protocol: icmp
-
-      - direction: ingress
-        protocol: tcp
-        port_range_min: { get_param: api_port}
-        port_range_max: { get_param: api_port}
-      - direction: ingress
-        protocol: tcp
-        port_range_min: 4001
-        port_range_max: 4001
-      - direction: ingress
-        protocol: tcp
-        port_range_min: 8443
-        port_range_max: 8443
+      # internal name services (pre 3.2)
       - direction: ingress
         protocol: tcp
         port_range_min: 53
@@ -129,40 +117,87 @@ resources:
         protocol: udp
         port_range_min: 53
         port_range_max: 53
-      - direction: ingress
-        protocol: udp
-        port_range_min: 4789
-        port_range_max: 4789
-      - direction: ingress
-        protocol: tcp
-        port_range_min: 8053
-        port_range_max: 8053
-      - direction: ingress
-        protocol: udp
-        port_range_min: 8053
-        port_range_max: 8053
-      - direction: ingress
-        protocol: tcp
-        port_range_min: 10250
-        port_range_max: 10250
-      - direction: ingress
-        protocol: tcp
-        port_range_min: 24224
-        port_range_max: 24224
-      - direction: ingress
-        protocol: udp
-        port_range_min: 24224
-        port_range_max: 24224
-      # etcd services
+      # etcd: client -> server connections
       - direction: ingress
         protocol: tcp
         port_range_min: 2379
         port_range_max: 2379
+      # etcd: server -> serer cluster communication
       - direction: ingress
         protocol: tcp
         port_range_min: 2380
         port_range_max: 2380
         remote_mode: remote_group_id
+      # etcd: state changes
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 4001
+        port_range_max: 4001
+      # pod to pod communications
+      - direction: ingress
+        protocol: udp
+        port_range_min: 4789
+        port_range_max: 4789
+      # internal name services (3.2+)
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 8053
+        port_range_max: 8053
+      - direction: ingress
+        protocol: udp
+        port_range_min: 8053
+        port_range_max: 8053
+      # master WebUI and API
+      - direction: ingress
+        protocol: tcp
+        port_range_min: { get_param: api_port}
+        port_range_max: { get_param: api_port}
+      # kubernetes: kubelet communications
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 10250
+        port_range_max: 10250
+      # fluentd: docker logging
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 24224
+        port_range_max: 24224
+      - direction: ingress
+        protocol: udp
+        port_range_min: 24224
+        port_range_max: 24224
+
+
+  infra_node_security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      rules:
+      - protocol: icmp
+      # cleartext application web traffic
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 80
+        port_range_max: 80
+      # encrypted application web traffic
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 443
+        port_range_max: 443
+      # pod to pod communications
+      - direction: ingress
+        protocol: udp
+        port_range_min: 4789
+        port_range_max: 4789
+      # docker registry
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 5000
+        port_range_max: 5000
+      # kubelet communications
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 10250
+        port_range_max: 10250
 
 
   app_node_security_group:
@@ -170,10 +205,16 @@ resources:
     properties:
       rules:
       - protocol: icmp
+      # pod to pod communications
+      - direction: ingress
+        protocol: udp
+        port_range_min: 4789
+        port_range_max: 4789
+      # kubelet communications
       - direction: ingress
         protocol: tcp
-        port_range_min: { get_param: api_port}
-        port_range_max: { get_param: api_port}
+        port_range_min: 10250
+        port_range_max: 10250
 
 
   master_nodes:
