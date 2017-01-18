@@ -1,0 +1,223 @@
+heat_template_version: 2016-10-14
+
+parameters:
+
+  key_name:
+    description: >
+      A pre-submitted SSH key to access the VM hosts
+    type: string
+    constraints:
+    - custom_constraint: nova.keypair
+
+  image:
+    description: >
+      Select a base image to use for the master servers
+    type: string
+    constraints:
+    - custom_constraint: glance.image
+
+  flavor:
+    description: >
+      Define the hardware characteristics for the VMs: CPU, Memory, base disk
+    type: string
+    constraints:
+    - custom_constraint: nova.flavor
+
+  root_volume_size:
+    description: >
+      Size of the root partition
+    type: number
+
+  docker_volume_size:
+    description: >
+      Size of a cinder volume in GB to allocate to docker for
+      container/image storage
+    type: number
+
+  ssh_user:
+    description: >
+      The user for SSH access to the VM hosts
+    type: string
+
+  external_network:
+    description: >
+      The name of the inbound access network
+    type: string
+    constraints:
+    - custom_constraint: neutron.network
+
+  provisioning_network:
+    description: >
+      The name or ID of the tenant IPv4 space
+    type: string
+    constraints:
+    - custom_constraint: neutron.network
+
+  provisioning_subnet:
+    description: >
+      The name or ID of the tenant IPv4 space
+    type: string
+    constraints:
+    - custom_constraint: neutron.subnet
+
+  provisioning_security_group:
+    description: >
+      ID of the network access policies for the OpenShift app node hosts
+    type: string
+
+  control_network:
+    description: >
+      The name or ID of the admin and public network
+    type: string
+    constraints:
+    - custom_constraint: neutron.network
+
+  control_subnet:
+    description: >
+      The name or ID of the admin and public IPv4 space
+    type: string
+    constraints:
+    - custom_constraint: neutron.subnet
+
+  tenant_network:
+    description: >
+      The name or ID of the tenant network for the container traffic
+    type: string
+    constraints:
+    - custom_constraint: neutron.network
+
+  tenant_subnet:
+    description: >
+      The name or ID of the tenant IPv4 space
+    type: string
+    constraints:
+    - custom_constraint: neutron.subnet
+
+  security_group:
+    description: >
+      ID of the network access policies for the OpenShift app node hosts
+    type: string
+
+
+resources:
+
+  provisioning_port:
+    type: OS::Neutron::Port
+    properties:
+      security_groups:
+      - {get_param: provisioning_security_group}
+      network: {get_param: provisioning_network}
+      fixed_ips:
+      - subnet: {get_param: provisioning_subnet}
+      replacement_policy: AUTO
+
+  floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: {get_param: external_network}
+      port_id: {get_resource: provisioning_port}
+
+  # Create a network connection on the control communications network
+  control_port:
+    type: OS::Neutron::Port
+    properties:
+      security_groups:
+      - {get_param: security_group}
+      network: {get_param: control_network}
+      fixed_ips:
+      - subnet: {get_param: control_subnet}
+      replacement_policy: AUTO
+
+  # Create a network connection on the tenant communications network
+  tenant_port:
+    # TODO: revert back to the generic/configurable type?
+    # type: OOShift::ContainerPort
+    type: sdn_openshift_sdn.yaml
+    properties:
+      security_group: {get_param: security_group}
+      network: {get_param: tenant_network}
+      subnet: {get_param: tenant_subnet}
+
+
+  # Create the VM instance to host the OpenShift master service
+  infra_node:
+    type: OS::Nova::Server
+    properties:
+      admin_user: {get_param: ssh_user}
+      flavor: {get_param: flavor}
+      key_name: {get_param: key_name}
+      networks:
+      - port: {get_resource: provisioning_port}
+      - port: {get_resource: control_port}
+      - port: {get_attr: [tenant_port, port]}
+      block_device_mapping_v2:
+      # Create a volume for the root partition:
+      - image: {get_param: image}
+        device_name: vda
+        volume_size: {get_param: root_volume_size}
+        delete_on_termination: true
+      user_data_format: SOFTWARE_CONFIG
+      user_data: {get_resource: cloud_init}
+
+  cloud_init:
+    type: OS::Heat::MultipartMime
+    properties:
+      parts:
+      - config: {get_resource: server_config}
+      - config: {get_resource: interface_setup}
+
+  server_config:
+    type: OS::Heat::CloudConfig
+    properties:
+      cloud_config:
+        cloud_config_modules:
+        - disk_setup
+        - mounts
+        write_files:
+        - path: /etc/sysconfig/docker-storage-setup
+          content:
+            str_replace:
+              template: |
+                DEVS='DOCKER_VOLUME_DEVICE'
+                VG=docker_vol
+                DATA_SIZE=95%VG
+                EXTRA_DOCKER_STORAGE_OPTIONS="--storage-opt dm.basesize=3G"
+              params:
+                DOCKER_VOLUME_DEVICE: {get_attr: [docker_volume, device_path]}
+          owner: root:root
+        # Configure the interface to the control network
+        - path: /etc/sysconfig/network-scripts/ifcfg-eth1
+          content:
+            str_replace:
+              template: {get_file: ifcfg-control}
+              params:
+                $IFNAME: eth1
+                $IPADDRESS: {get_attr: [control_port, fixed_ips, 0, ip_address]}
+        # Configure the interface to the tenant network
+        - path: /etc/sysconfig/network-scripts/ifcfg-eth2
+          content:
+            str_replace:
+              template: {get_file: ifcfg-tenant}
+              params:
+                $IFNAME: eth2
+
+  interface_setup:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config: |
+        #!/bin/bash
+        set -eux
+        ifup eth1
+        ifup eth2
+
+  docker_volume:
+    type: volume.yaml
+    properties:
+      size: {get_param: docker_volume_size}
+
+  # Bind the docker storage to the VM
+  docker_volume_attach:
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      instance_uuid: {get_resource: infra_node}
+      volume_id: {get_attr: [docker_volume, volume]}

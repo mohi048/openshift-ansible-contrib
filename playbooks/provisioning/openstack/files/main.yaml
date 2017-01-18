@@ -243,6 +243,29 @@ resources:
           external_lb_pool: {get_resource: external_lb_pool}
           internal_lb_pool: {get_resource: internal_lb_pool}
 
+  infra_nodes:
+    type: OS::Heat::ResourceGroup
+    properties:
+      count: 1
+      resource_def:
+        type: infra_node.yaml
+        properties:
+          key_name: {get_param: ssh_key_name}
+          image: centos72  # TODO
+          flavor: m1.small  # TODO
+          root_volume_size: 10 # TODO
+          docker_volume_size: 25 # TODO
+          ssh_user: centos
+          external_network: {get_param: external_network}
+          provisioning_network: {get_resource: provisioning_network}
+          provisioning_subnet: {get_resource: provisioning_subnet}
+          provisioning_security_group: {get_resource: provisioning_security_group}
+          control_network: {get_resource: control_network}
+          control_subnet: {get_resource: control_subnet}
+          tenant_network: {get_resource: tenant_network}
+          tenant_subnet: {get_resource: tenant_subnet}
+          security_group: {get_resource: infra_node_security_group}
+
   app_nodes:
     type: OS::Heat::ResourceGroup
     properties:
