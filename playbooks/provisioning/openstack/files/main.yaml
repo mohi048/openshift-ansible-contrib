@@ -28,7 +28,7 @@ parameters:
   api_port:
     type: number
     description: The port number for the OpenShift API
-    default: 443
+    default: 8443
 
   master_image:
     description: >
