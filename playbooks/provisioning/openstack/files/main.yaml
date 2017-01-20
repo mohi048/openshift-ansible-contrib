@@ -272,6 +272,11 @@ resources:
         protocol: tcp
         port_range_min: 10250
         port_range_max: 10250
+      # master WebUI and API
+      - direction: ingress
+        protocol: tcp
+        port_range_min: { get_param: api_port}
+        port_range_max: { get_param: api_port}
 
 
   app_node_security_group:
@@ -289,6 +294,11 @@ resources:
         protocol: tcp
         port_range_min: 10250
         port_range_max: 10250
+      # master WebUI and API
+      - direction: ingress
+        protocol: tcp
+        port_range_min: { get_param: api_port}
+        port_range_max: { get_param: api_port}
 
 
   master_nodes:
