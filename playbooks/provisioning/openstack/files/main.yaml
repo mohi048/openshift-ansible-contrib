@@ -423,3 +423,9 @@ resources:
 outputs:
   master_node_api:
     value: { get_attr: [ external_lb_floating_ip, floating_ip_address ] }
+  master_nodes:
+    value: {get_attr: [master_nodes, attributes, access]}
+  infra_nodes:
+    value: {get_attr: [infra_nodes, attributes, access]}
+  app_nodes:
+    value: {get_attr: [app_nodes, attributes, access]}

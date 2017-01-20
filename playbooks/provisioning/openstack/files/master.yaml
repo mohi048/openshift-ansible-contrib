@@ -263,3 +263,10 @@ resources:
       address: {get_attr: [floating_ip, floating_ip_address]}
       protocol_port: { get_param: api_port}
       subnet: {get_param: control_subnet}
+
+outputs:
+  access:
+    value:
+      hostname: {get_attr: [master, name]}
+      public_ip: {get_attr: [floating_ip, floating_ip_address]}
+      private_ip: {get_attr: [control_port, fixed_ips, 0, ip_address]}

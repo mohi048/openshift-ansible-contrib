@@ -221,3 +221,10 @@ resources:
     properties:
       instance_uuid: {get_resource: app_node}
       volume_id: {get_attr: [docker_volume, volume]}
+
+outputs:
+  access:
+    value:
+      hostname: {get_attr: [app_node, name]}
+      public_ip: {get_attr: [floating_ip, floating_ip_address]}
+      private_ip: {get_attr: [control_port, fixed_ips, 0, ip_address]}
