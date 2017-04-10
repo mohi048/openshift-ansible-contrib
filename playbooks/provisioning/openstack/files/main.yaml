@@ -28,7 +28,7 @@ parameters:
   api_port:
     type: number
     description: The port number for the OpenShift API
-    default: 8443
+    default: 443
 
   master_image:
     description: >
@@ -105,43 +105,6 @@ parameters:
 
 
 resources:
-
-  # NOTE: this network and subnet is to provide SSH access via
-  # floating IP addresses to install/update Openshift using
-  # openshift-ansible. The idea is that it can be blocked after that's
-  # done.
-  provisioning_network:
-    type: OS::Neutron::Net
-
-  provisioning_subnet:
-    type: OS::Neutron::Subnet
-    properties:
-      cidr: 192.168.1.0/24
-      dns_nameservers: {get_param: dns_nameserver}
-      network: {get_resource: provisioning_network}
-
-  provisioning_router:
-    type: OS::Neutron::Router
-    properties:
-      external_gateway_info:
-        network: {get_param: external_network}
-
-  provisioning_router_interface:
-    type: OS::Neutron::RouterInterface
-    properties:
-      router_id: {get_resource: provisioning_router}
-      subnet: {get_resource: provisioning_subnet}
-
-  provisioning_security_group:
-    type: OS::Neutron::SecurityGroup
-    properties:
-      rules:
-      - protocol: icmp
-
-      - direction: ingress
-        protocol: tcp
-        port_range_min: 22
-        port_range_max: 22
 
   control_network:
     type: OS::Neutron::Net
@@ -316,9 +279,6 @@ resources:
           etcd_volume_size: {get_param: etcd_volume_size}
           ssh_user: centos
           external_network: {get_param: external_network}
-          provisioning_network: {get_resource: provisioning_network}
-          provisioning_subnet: {get_resource: provisioning_subnet}
-          provisioning_security_group: {get_resource: provisioning_security_group}
           control_network: {get_resource: control_network}
           control_subnet: {get_resource: control_subnet}
           # master_server_group: TODO
@@ -341,9 +301,6 @@ resources:
           docker_volume_size: {get_param: docker_volume_size}
           ssh_user: centos
           external_network: {get_param: external_network}
-          provisioning_network: {get_resource: provisioning_network}
-          provisioning_subnet: {get_resource: provisioning_subnet}
-          provisioning_security_group: {get_resource: provisioning_security_group}
           control_network: {get_resource: control_network}
           control_subnet: {get_resource: control_subnet}
           tenant_network: {get_resource: tenant_network}
@@ -364,9 +321,6 @@ resources:
           docker_volume_size: {get_param: docker_volume_size}
           ssh_user: centos
           external_network: {get_param: external_network}
-          provisioning_network: {get_resource: provisioning_network}
-          provisioning_subnet: {get_resource: provisioning_subnet}
-          provisioning_security_group: {get_resource: provisioning_security_group}
           control_network: {get_resource: control_network}
           control_subnet: {get_resource: control_subnet}
           tenant_network: {get_resource: tenant_network}
