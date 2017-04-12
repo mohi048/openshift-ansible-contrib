@@ -34,11 +34,6 @@ parameters:
       container/image storage
     type: number
 
-  ssh_user:
-    description: >
-      The user for SSH access to the VM hosts
-    type: string
-
   external_network:
     description: >
       The name of the inbound access network
@@ -114,7 +109,6 @@ resources:
   infra_node:
     type: OS::Nova::Server
     properties:
-      admin_user: {get_param: ssh_user}
       flavor: {get_param: flavor}
       key_name: {get_param: key_name}
       networks:
@@ -155,21 +149,13 @@ resources:
               params:
                 DOCKER_VOLUME_DEVICE: {get_attr: [docker_volume, device_path]}
           owner: root:root
-        # Configure the interface to the control network
-        - path: /etc/sysconfig/network-scripts/ifcfg-eth1
-          content:
-            str_replace:
-              template: {get_file: ifcfg-control}
-              params:
-                $IFNAME: eth1
-                $IPADDRESS: {get_attr: [control_port, fixed_ips, 0, ip_address]}
         # Configure the interface to the tenant network
-        - path: /etc/sysconfig/network-scripts/ifcfg-eth2
+        - path: /etc/sysconfig/network-scripts/ifcfg-eth1
           content:
             str_replace:
               template: {get_file: ifcfg-tenant}
               params:
-                $IFNAME: eth2
+                $IFNAME: eth1
 
   interface_setup:
     type: OS::Heat::SoftwareConfig
@@ -178,7 +164,6 @@ resources:
         #!/bin/bash
         set -eux
         ifup eth1
-        ifup eth2
 
   docker_volume:
     type: volume.yaml

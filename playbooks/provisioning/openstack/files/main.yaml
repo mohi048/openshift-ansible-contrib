@@ -145,6 +145,11 @@ resources:
     properties:
       rules:
       - protocol: icmp
+      # SSH (necessary for openshift-ansible)
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 22
+        port_range_max: 22
       # internal name services (pre 3.2)
       - direction: ingress
         protocol: tcp
@@ -210,6 +215,11 @@ resources:
     properties:
       rules:
       - protocol: icmp
+      # SSH (necessary for openshift-ansible)
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 22
+        port_range_max: 22
       # cleartext application web traffic
       - direction: ingress
         protocol: tcp
@@ -247,6 +257,11 @@ resources:
     properties:
       rules:
       - protocol: icmp
+      # SSH (necessary for openshift-ansible)
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 22
+        port_range_max: 22
       # pod to pod communications
       - direction: ingress
         protocol: udp
@@ -277,7 +292,6 @@ resources:
           root_volume_size: {get_param: root_volume_size}
           docker_volume_size: {get_param: docker_volume_size}
           etcd_volume_size: {get_param: etcd_volume_size}
-          ssh_user: centos
           external_network: {get_param: external_network}
           control_network: {get_resource: control_network}
           control_subnet: {get_resource: control_subnet}
@@ -299,7 +313,6 @@ resources:
           flavor: {get_param: infra_flavor}
           root_volume_size: {get_param: root_volume_size}
           docker_volume_size: {get_param: docker_volume_size}
-          ssh_user: centos
           external_network: {get_param: external_network}
           control_network: {get_resource: control_network}
           control_subnet: {get_resource: control_subnet}
@@ -319,7 +332,6 @@ resources:
           flavor: {get_param: app_flavor}
           root_volume_size: {get_param: root_volume_size}
           docker_volume_size: {get_param: docker_volume_size}
-          ssh_user: centos
           external_network: {get_param: external_network}
           control_network: {get_resource: control_network}
           control_subnet: {get_resource: control_subnet}

@@ -44,11 +44,6 @@ parameters:
       Size of a cinder volume in GB to allocate to etcd storage
     type: number
 
-  ssh_user:
-    description: >
-      The user for SSH access to the VM hosts
-    type: string
-
   external_network:
     description: >
       The name of the inbound access network
@@ -118,7 +113,6 @@ resources:
   master:
     type: OS::Nova::Server
     properties:
-      admin_user: {get_param: ssh_user}
       flavor: {get_param: flavor}
       key_name: {get_param: key_name}
       networks:
@@ -140,7 +134,6 @@ resources:
     properties:
       parts:
       - config: {get_resource: server_config}
-      - config: {get_resource: interface_setup}
 
   server_config:
     type: OS::Heat::CloudConfig
@@ -173,22 +166,6 @@ resources:
                 DOCKER_VOLUME_DEVICE: {get_attr: [docker_volume, device_path]}
           path: /etc/sysconfig/docker-storage-setup
           owner: root:root
-        # Configure the interface to the control network
-        - path: /etc/sysconfig/network-scripts/ifcfg-eth1
-          content:
-            str_replace:
-              template: {get_file: ifcfg-control}
-              params:
-                $IFNAME: eth1
-                $IPADDRESS: {get_attr: [control_port, fixed_ips, 0, ip_address]}
-
-  interface_setup:
-    type: OS::Heat::SoftwareConfig
-    properties:
-      config: |
-        #!/bin/bash
-        set -eux
-        ifup eth1
 
 
   # Create the docker and etcd volumes.
