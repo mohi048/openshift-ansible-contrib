@@ -7,15 +7,16 @@ import json
 import os
 import sys
 
-from heatclient.v1 import client as heat_client
-from keystoneclient.v3 import client as keystone_client
+from keystoneauth1.identity import generic as ks_id
+from keystoneauth1 import session
+import heatclient.client
 
 
 # TODO
 STACK_NAME='openshift-test-test'
 
 
-def get_keystone_client():
+def keystone_session():
     auth_url = os.environ.get('OS_AUTH_URL')
     username = os.environ.get('OS_USERNAME')
     password = os.environ.get('OS_PASSWORD')
@@ -24,40 +25,41 @@ def get_keystone_client():
     cacert = os.environ.get('OS_CACERT')
 
     if auth_token:
-        client = keystone_client.Client(
-            auth_url=auth_url,
-            username=username,
-            token=auth_token,
-            project_name=project_name,
-            cacert=cacert)
+        auth_inputs = {
+            'auth_url': auth_url,
+            'token': auth_token,
+            'project_name': project_name,
+        }
+        if auth_url.endswith('v3'):
+            auth_inputs['project_domain_id'] = 'default'
+        auth = ks_id.Token(**auth_inputs)
     else:
-        client = keystone_client.Client(
-            auth_url=auth_url,
-            username=username,
-            password=password,
-            project_name=project_name,
-            cacert=cacert)
-    client.authenticate()
-    return client
+        auth_inputs = {
+            'auth_url': auth_url,
+            'username': username,
+            'password': password,
+            'project_name': project_name,
+        }
+        if auth_url.endswith('v3'):
+            auth_inputs['user_domain_id'] = 'default'
+            auth_inputs['project_domain_id'] = 'default'
+        auth = ks_id.Password(**auth_inputs)
+    return session.Session(auth=auth, verify=cacert)
 
-def get_heat_client():
-    keystone = get_keystone_client()
-    endpoint = keystone.service_catalog.url_for(
-        service_type='orchestration', endpoint_type='publicURL')
-    cacert = os.environ.get('OS_CACERT')
+
+def heat_client():
+    session = keystone_session()
     try:
-        client = heat_client.Client(
-            endpoint=endpoint,
-            token=keystone.auth_token,
-            ca_file=cacert)
+        client = heatclient.client.Client('1', session=session)
     except Exception as e:
         print("Error connecting to Heat: {}".format(e.message),
               file=sys.stderr)
         sys.exit(1)
     return client
 
+
 def inventory_list():
-    heat = get_heat_client()
+    heat = heat_client()
     stack = heat.stacks.get(STACK_NAME)
     inventory = {}
 
@@ -79,8 +81,6 @@ def inventory_list():
                 'openshift_router_selector': 'region=infra'
             }
         },
-        'infra': ['localhost'],
-        'dns': ['localhost'],
     }
 
     outputs = dict(((output['output_key'], output['output_value'])
@@ -121,7 +121,6 @@ def inventory_list():
     print(json.dumps(inventory))
 
 
-
 # http://docs.ansible.com/ansible/developing_inventory.html
 def inventory_host():
     print('{}')
@@ -138,6 +137,7 @@ def main():
     elif args.host:
         inventory_host()
     sys.exit(0)
+
 
 if __name__ == '__main__':
     main()
