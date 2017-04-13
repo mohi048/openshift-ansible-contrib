@@ -7,6 +7,12 @@ description: >
 
 parameters:
 
+  hostname:
+    type: string
+
+  internal_hostname:
+    type: string
+
   key_name:
     description: >
       A pre-submitted SSH key to access the VM hosts
@@ -113,6 +119,7 @@ resources:
   master:
     type: OS::Nova::Server
     properties:
+      name: {get_param: hostname}
       flavor: {get_param: flavor}
       key_name: {get_param: key_name}
       networks:
@@ -142,6 +149,9 @@ resources:
         cloud_config_modules:
         - disk_setup
         - mounts
+        hostname: {get_param: hostname}
+        fqdn: {get_param: hostname}
+        manage_etc_hosts: true
         fs_setup:
         - label: etcd_storage
           filesystem: xfs
@@ -215,5 +225,13 @@ outputs:
   access:
     value:
       hostname: {get_attr: [master, name]}
+      internal_hostname: {get_param: internal_hostname}
       public_ip: {get_attr: [floating_ip, floating_ip_address]}
       private_ip: {get_attr: [control_port, fixed_ips, 0, ip_address]}
+  hosts_entry:
+    value:
+      str_replace:
+        template: "HOSTNAME IP"
+        params:
+          HOSTNAME: {get_param: hostname}
+          IP: {get_attr: [floating_ip, floating_ip_address]}

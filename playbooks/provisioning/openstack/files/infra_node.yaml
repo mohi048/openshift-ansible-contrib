@@ -2,6 +2,12 @@ heat_template_version: 2016-10-14
 
 parameters:
 
+  hostname:
+    type: string
+
+  internal_hostname:
+    type: string
+
   key_name:
     description: >
       A pre-submitted SSH key to access the VM hosts
@@ -109,6 +115,7 @@ resources:
   infra_node:
     type: OS::Nova::Server
     properties:
+      name: {get_param: hostname}
       flavor: {get_param: flavor}
       key_name: {get_param: key_name}
       networks:
@@ -137,6 +144,9 @@ resources:
         cloud_config_modules:
         - disk_setup
         - mounts
+        hostname: {get_param: hostname}
+        fqdn: {get_param: hostname}
+        manage_etc_hosts: true
         write_files:
         - path: /etc/sysconfig/docker-storage-setup
           content:
@@ -181,5 +191,13 @@ outputs:
   access:
     value:
       hostname: {get_attr: [infra_node, name]}
+      internal_hostname: {get_param: internal_hostname}
       public_ip: {get_attr: [floating_ip, floating_ip_address]}
       private_ip: {get_attr: [control_port, fixed_ips, 0, ip_address]}
+  hosts_entry:
+    value:
+      str_replace:
+        template: "HOSTNAME IP"
+        params:
+          HOSTNAME: {get_param: hostname}
+          IP: {get_attr: [floating_ip, floating_ip_address]}

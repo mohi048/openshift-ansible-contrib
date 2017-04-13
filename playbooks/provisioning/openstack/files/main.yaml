@@ -25,11 +25,6 @@ parameters:
     constraints:
     - custom_constraint: nova.keypair
 
-  api_port:
-    type: number
-    description: The port number for the OpenShift API
-    default: 443
-
   master_image:
     description: >
       Select a base image to use for the master servers
@@ -103,6 +98,11 @@ parameters:
       Size of a cinder volume in GB to allocate to etcd storage
     type: number
 
+  domain_name:
+    description: >
+      The domain name (zone) of the the deployed servers.
+    type: string
+    default: example.com
 
 resources:
 
@@ -192,8 +192,8 @@ resources:
       # master WebUI and API
       - direction: ingress
         protocol: tcp
-        port_range_min: { get_param: api_port}
-        port_range_max: { get_param: api_port}
+        port_range_min: 8443
+        port_range_max: 8443
       # kubernetes: kubelet communications
       - direction: ingress
         protocol: tcp
@@ -248,8 +248,8 @@ resources:
       # master WebUI and API
       - direction: ingress
         protocol: tcp
-        port_range_min: { get_param: api_port}
-        port_range_max: { get_param: api_port}
+        port_range_min: 8443
+        port_range_max: 8443
 
 
   app_node_security_group:
@@ -275,8 +275,8 @@ resources:
       # master WebUI and API
       - direction: ingress
         protocol: tcp
-        port_range_min: { get_param: api_port}
-        port_range_max: { get_param: api_port}
+        port_range_min: 8443
+        port_range_max: 8443
 
 
   master_nodes:
@@ -286,6 +286,18 @@ resources:
       resource_def:
         type: master.yaml
         properties:
+          hostname:
+            str_replace:
+              template: "STACK-master-%index%.DOMAIN"
+              params:
+                STACK: {get_param: 'OS::stack_name'}
+                DOMAIN: {get_param: 'domain_name'}
+          internal_hostname:
+            str_replace:
+              template: "STACK-master-%index%.control.DOMAIN"
+              params:
+                STACK: {get_param: 'OS::stack_name'}
+                DOMAIN: {get_param: 'domain_name'}
           key_name: {get_param: ssh_key_name}
           image: {get_param: master_image}
           flavor: {get_param: master_flavor}
@@ -297,7 +309,7 @@ resources:
           control_subnet: {get_resource: control_subnet}
           # master_server_group: TODO
           master_security_group: {get_resource: master_security_group}
-          api_port: {get_param: api_port}
+          api_port: 8443
           external_lb_pool: {get_resource: external_lb_pool}
           internal_lb_pool: {get_resource: internal_lb_pool}
 
@@ -308,6 +320,18 @@ resources:
       resource_def:
         type: infra_node.yaml
         properties:
+          hostname:
+            str_replace:
+              template: "STACK-infra-%index%.DOMAIN"
+              params:
+                STACK: {get_param: 'OS::stack_name'}
+                DOMAIN: {get_param: 'domain_name'}
+          internal_hostname:
+            str_replace:
+              template: "STACK-infra-%index%.control.DOMAIN"
+              params:
+                STACK: {get_param: 'OS::stack_name'}
+                DOMAIN: {get_param: 'domain_name'}
           key_name: {get_param: ssh_key_name}
           image: {get_param: infra_image}
           flavor: {get_param: infra_flavor}
@@ -327,6 +351,18 @@ resources:
       resource_def:
         type: app_node.yaml
         properties:
+          hostname:
+            str_replace:
+              template: "STACK-app-%index%.DOMAIN"
+              params:
+                STACK: {get_param: 'OS::stack_name'}
+                DOMAIN: {get_param: 'domain_name'}
+          internal_hostname:
+            str_replace:
+              template: "STACK-app-%index%.control.DOMAIN"
+              params:
+                STACK: {get_param: 'OS::stack_name'}
+                DOMAIN: {get_param: 'domain_name'}
           key_name: {get_param: ssh_key_name}
           image: {get_param: app_image}
           flavor: {get_param: app_flavor}
@@ -350,7 +386,7 @@ resources:
     properties:
       loadbalancer: { get_resource: external_load_balancer }
       protocol: HTTP
-      protocol_port: { get_param: api_port }
+      protocol_port: 8443
 
   external_lb_pool:
     type: OS::Neutron::LBaaS::Pool
@@ -377,7 +413,7 @@ resources:
     properties:
       loadbalancer: { get_resource: internal_load_balancer }
       protocol: HTTP
-      protocol_port: { get_param: api_port }
+      protocol_port: 443
 
   internal_lb_pool:
     type: OS::Neutron::LBaaS::Pool
@@ -390,8 +426,22 @@ outputs:
   master_node_api:
     value: { get_attr: [ external_lb_floating_ip, floating_ip_address ] }
   master_nodes:
-    value: {get_attr: [master_nodes, attributes, access]}
+    value: {get_attr: [master_nodes, access]}
   infra_nodes:
-    value: {get_attr: [infra_nodes, attributes, access]}
+    value: {get_attr: [infra_nodes, access]}
   app_nodes:
-    value: {get_attr: [app_nodes, attributes, access]}
+    value: {get_attr: [app_nodes, access]}
+  hosts_entries:
+    value:
+      list_join:
+      - '\n'
+      -
+        - list_join:
+          - '\n'
+          - { get_attr: [master_nodes, hosts_entry] }
+        - list_join:
+          - '\n'
+          - { get_attr: [infra_nodes, hosts_entry] }
+        - list_join:
+          - '\n'
+          - { get_attr: [app_nodes, hosts_entry] }
