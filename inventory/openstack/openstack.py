@@ -87,33 +87,33 @@ def inventory_list():
                     for output in stack.outputs))
 
     inventory['masters']['hosts'] = [host['hostname'] for host
-                                     in outputs['master_nodes'].values()]
+                                     in outputs['master_nodes']]
 
-    for output in outputs['master_nodes'].values():
+    for output in outputs['master_nodes']:
         inventory['_meta']['hostvars'][output['hostname']] = {
-            'openshift_hostname': output['hostname'],
+            'openshift_hostname': output['internal_hostname'],
             'openshift_public_hostname': output['hostname'],
         }
 
     inventory['etcd'] = [host['hostname'] for host
-                            in outputs['master_nodes'].values()]
+                            in outputs['master_nodes']]
 
-    app_and_infra_nodes = outputs['infra_nodes'].values() + outputs['app_nodes'].values()
+    app_and_infra_nodes = outputs['infra_nodes'] + outputs['app_nodes']
     inventory['nodes'] = [host['hostname'] for host
                             in app_and_infra_nodes]
 
-    for output in outputs['infra_nodes'].values():
+    for output in outputs['infra_nodes']:
         inventory['_meta']['hostvars'][output['hostname']] = {
             'openshift_node_labels' : "{'region': 'infra', 'zone': 'default'}",
-            'openshift_hostname': output['hostname'],
+            'openshift_hostname': output['internal_hostname'],
             'openshift_public_hostname': output['hostname'],
             'openshift_ip': output['private_ip'],
         }
 
-    for output in outputs['app_nodes'].values():
+    for output in outputs['app_nodes']:
         inventory['_meta']['hostvars'][output['hostname']] = {
             'openshift_node_labels': "{'region': 'primary', 'zone': 'default'}",
-            'openshift_hostname': output['hostname'],
+            'openshift_hostname': output['internal_hostname'],
             'openshift_public_hostname': output['hostname'],
             'openshift_ip': output['private_ip'],
         }
