@@ -12,10 +12,6 @@ from keystoneauth1 import session
 import heatclient.client
 
 
-# TODO
-STACK_NAME='openshift-test-test'
-
-
 def keystone_session():
     auth_url = os.environ.get('OS_AUTH_URL')
     username = os.environ.get('OS_USERNAME')
@@ -58,9 +54,9 @@ def heat_client():
     return client
 
 
-def inventory_list():
+def inventory_list(stack_name):
     heat = heat_client()
-    stack = heat.stacks.get(STACK_NAME)
+    stack = heat.stacks.get(stack_name)
     inventory = {}
 
     inventory = {
@@ -133,7 +129,10 @@ def main():
     parser.add_argument('--host', action='store_true')
     args = parser.parse_args()
     if args.list:
-        inventory_list()
+        stack_name = os.environ.get('OS_STACK_NAME', '').strip()
+        if not stack_name:
+            stack_name = 'openshift-test-test'
+        inventory_list(stack_name)
     elif args.host:
         inventory_host()
     sys.exit(0)
