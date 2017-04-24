@@ -197,7 +197,9 @@ outputs:
   hosts_entry:
     value:
       str_replace:
-        template: "HOSTNAME IP"
+        template: "PUBLIC_HOSTNAME\tPUBLIC_IP\nINTERNAL_HOSTNAME\tINTERNAL_IP"
         params:
-          HOSTNAME: {get_param: hostname}
-          IP: {get_attr: [floating_ip, floating_ip_address]}
+          PUBLIC_HOSTNAME: {get_param: hostname}
+          PUBLIC_IP: {get_attr: [floating_ip, floating_ip_address]}
+          INTERNAL_HOSTNAME: {get_param: internal_hostname}
+          INTERNAL_IP: {get_attr: [control_port, fixed_ips, 0, ip_address]}
