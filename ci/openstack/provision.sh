@@ -48,7 +48,7 @@ cat $INVENTORY/group_vars/OSEv3.yml
 echo INSTALL OPENSHIFT
 
 ansible-galaxy install -r playbooks/provisioning/openstack/galaxy-requirements.yaml -p roles
-ansible-playbook --timeout 90 -i "$INVENTORY" playbooks/provisioning/openstack/provision.yaml
+ansible-playbook --timeout 90 --user openshift -i "$INVENTORY" playbooks/provisioning/openstack/provision.yaml
 ansible-playbook --become --timeout 90 --user openshift -i "$INVENTORY" ..openshift-ansible/playbooks/byo/config.yml
 
 
