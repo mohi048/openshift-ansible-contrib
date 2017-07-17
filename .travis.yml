@@ -10,11 +10,9 @@ cache:
 language: python
 python:
   - "2.7"
-  - "3.5"
 
 install:
-  - pip install -r requirements.txt
-  - pip install tox-travis
+  - pip install ansible python-dns shade
 
 script:
-  - tox
+  - ansible-playbook -i playbooks/provisioning/openstack/sample-inventory/ playbooks/provisioning/openstack/provision.yaml
