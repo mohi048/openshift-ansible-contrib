@@ -19,7 +19,7 @@ install:
 - ci/openstack/install.sh
 
 script:
-- ci/openstack/provision.sh
+- travis_wait 30 ci/openstack/provision.sh
 - ci/openstack/validate.sh
 
 after_script:
