@@ -51,7 +51,7 @@ echo INSTALL OPENSHIFT
 
 ansible-galaxy install -r playbooks/provisioning/openstack/galaxy-requirements.yaml -p roles
 ansible-playbook --timeout 180 --user openshift --private-key ~/.ssh/id_rsa -i "$INVENTORY" playbooks/provisioning/openstack/provision.yaml
-travis_wait 30 ansible-playbook --become --timeout 180 --user openshift --private-key ~/.ssh/id_rsa -i "$INVENTORY" ../openshift-ansible/playbooks/byo/config.yml
+ansible-playbook --become --timeout 180 --user openshift --private-key ~/.ssh/id_rsa -i "$INVENTORY" ../openshift-ansible/playbooks/byo/config.yml
 
 
 echo SET UP DNS
