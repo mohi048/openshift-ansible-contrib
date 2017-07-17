@@ -4,7 +4,7 @@ set -euo pipefail
 
 # Do we have ssh keys?
 
-KEYPAIR_NAME="travis-ci-$TRAVIS_JOB_NUMBER"
+KEYPAIR_NAME="travis-ci-$TRAVIS_BUILD_NUMBER"
 
 openstack keypair create "$KEYPAIR_NAME" > ~/.ssh/id_rsa
 
