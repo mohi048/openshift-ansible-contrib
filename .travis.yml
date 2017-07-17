@@ -12,8 +12,11 @@ python:
   - "2.7"
 
 install:
-  - pip install ansible shade dnspython
+- ci/install.sh
 
 script:
-  - ansible-galaxy install -r playbooks/provisioning/openstack/galaxy-requirements.yaml -p roles
-  - ansible-playbook -i playbooks/provisioning/openstack/sample-inventory/ playbooks/provisioning/openstack/provision.yaml
+- ci/provision.sh
+- ci/validate.sh
+
+after_script:
+- ci/teardown.sh
