@@ -5,6 +5,7 @@ set -euo pipefail
 # Do we have ssh keys?
 
 KEYPAIR_NAME="travis-ci-$TRAVIS_BUILD_NUMBER"
+echo "Keypair name: $KEYPAIR_NAME"
 
 openstack keypair create "$KEYPAIR_NAME" > ~/.ssh/id_rsa
 chmod 600 ~/.ssh/id_rsa
@@ -22,6 +23,7 @@ sed -i 's/^openstack_default_image_name.*/openstack_default_image_name: "CentOS-
 
 PUBLIC_IP="$(curl --silent https://api.ipify.org)"
 echo "node_ingress_cidr: $PUBLIC_IP/32" >> "$INVENTORY"/group_vars/all.yml
+echo "manage_packages: False" >> "$INVENTORY"/group_vars/all.yml
 
 cat << EOF >> "$INVENTORY"/group_vars/OSEv3.yml
 openshift_master_identity_providers:
