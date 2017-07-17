@@ -22,5 +22,11 @@ script:
 - ci/openstack/provision.sh
 - ci/openstack/validate.sh
 
+after_success:
+- ci/openstack/teardown.sh
+
+after_failure:
+- ci/openstack/teardown.sh
+
 after_script:
 - ci/openstack/teardown.sh
