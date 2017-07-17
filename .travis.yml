@@ -15,5 +15,7 @@ install:
   - pip install ansible shade dnspython
 
 script:
+  - echo "$PWD"
+  - ls -alh
   - ansible-galaxy install -r openshift-ansible-contrib/playbooks/provisioning/openstack/galaxy-requirements.yaml -p openshift-ansible-contrib/roles
   - ansible-playbook -i playbooks/provisioning/openstack/sample-inventory/ playbooks/provisioning/openstack/provision.yaml
