@@ -2,5 +2,48 @@
 
 set -euo pipefail
 
+# Do we have ssh keys?
+test -f ~/.ssh/id_rsa
+test -f ~/.ssh/id_rsa.pub
+
+echo TODO: create the openshift key
+
+export INVENTORY="$PWD/playbooks/provisioning/openstack/sample-inventory"
+
+mv "$INVENTORY"/clouds.yaml .
+mv "$INVENTORY"/ansible.cfg .
+
+sed -i 's/^openstack_external_network_name.*/openstack_external_network_name: "38.145.32.0\/22"/' "$INVENTORY"/group_vars/all.yml
+sed -i 's/^openstack_default_image_name.*/openstack_default_image_name: "CentOS-7-x86_64-GenericCloud-1703"/' "$INVENTORY"/group_vars/all.yml
+
+PUBLIC_IP="$(curl --silent https://api.ipify.org)"
+echo "node_ingress_cidr: $PUBLIC_IP/32" >> "$INVENTORY"/group_vars/all.yml
+
+cat << EOF >> "$INVENTORY"/group_vars/OSEv3.yml
+openshift_master_identity_providers:
+- name: 'htpasswd_auth'
+  login: 'true'
+  challenge: 'true'
+  kind: 'HTPasswdPasswordIdentityProvider'
+  filename: '/etc/origin/master/htpasswd'
+openshift_master_htpasswd_users:
+  test: '\$apr1\$vUfm7jQS\$C6Vn0GDScgOjzvk1PSHe1/'
+openshift_disable_check: disk_availability,memory_availability
+openshift_override_hostname_check: true
+EOF
+
+
+echo INSTALL OPENSHIFT
+
 ansible-galaxy install -r playbooks/provisioning/openstack/galaxy-requirements.yaml -p roles
-ansible-playbook -i playbooks/provisioning/openstack/sample-inventory/ playbooks/provisioning/openstack/provision.yaml
+ansible-playbook --timeout 90 -i "$INVENTORY" playbooks/provisioning/openstack/provision.yaml
+ansible-playbook --become --timeout 90 --user openshift -i "$INVENTORY" ..openshift-ansible/playbooks/byo/config.yml
+
+
+echo SET UP DNS
+
+cp /etc/resolv.conf resolv.conf.orig
+DNS_IP=$(openstack server show dns-0.openshift.example.com --format value --column addresses | awk '{print $2}')
+grep -v '^nameserver' resolv.conf.orig > resolv.conf.openshift
+echo nameserver "$DNS_IP" >> resolv.conf.openshift
+sudo cp resolv.conf.openshift /etc/resolv.conf
