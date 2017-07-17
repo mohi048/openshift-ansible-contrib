@@ -3,16 +3,19 @@
 set -euo pipefail
 
 # Do we have ssh keys?
-test -f ~/.ssh/id_rsa
-test -f ~/.ssh/id_rsa.pub
 
-echo TODO: create the openshift key
+KEYPAIR_NAME="travis-ci-$TRAVIS_JOB_NUMBER"
+
+openstack keypair create "$KEYPAIR_NAME" > ~/.ssh/id_rsa
+
+echo CONFIGURE THE INVENTORY
 
 export INVENTORY="$PWD/playbooks/provisioning/openstack/sample-inventory"
 
 mv "$INVENTORY"/clouds.yaml .
 mv "$INVENTORY"/ansible.cfg .
 
+sed -i "s/^openstack_ssh_public_key.*/openstack_ssh_public_key: $KEYPAIR_NAME/" "$INVENTORY"/group_vars/all.yml
 sed -i 's/^openstack_external_network_name.*/openstack_external_network_name: "38.145.32.0\/22"/' "$INVENTORY"/group_vars/all.yml
 sed -i 's/^openstack_default_image_name.*/openstack_default_image_name: "CentOS-7-x86_64-GenericCloud-1703"/' "$INVENTORY"/group_vars/all.yml
 
@@ -31,6 +34,15 @@ openshift_master_htpasswd_users:
 openshift_disable_check: disk_availability,memory_availability
 openshift_override_hostname_check: true
 EOF
+
+
+echo GENERATED INVENTORY
+echo group_vars/all.yml:
+cat $INVENTORY/group_vars/all.yml
+
+echo
+echo group_vars/OSEv3.yml
+cat $INVENTORY/group_vars/OSEv3.yml
 
 
 echo INSTALL OPENSHIFT
