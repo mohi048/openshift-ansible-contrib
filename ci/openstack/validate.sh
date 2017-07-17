@@ -21,7 +21,8 @@ for i in $(seq 600); do
         echo ERROR: The deployment failed
         break
     else
-        sleep 5
+        printf .
+        sleep 15
     fi
 done
 

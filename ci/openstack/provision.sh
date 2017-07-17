@@ -35,7 +35,6 @@ openshift_master_identity_providers:
 openshift_master_htpasswd_users:
   test: '\$apr1\$vUfm7jQS\$C6Vn0GDScgOjzvk1PSHe1/'
 openshift_disable_check: disk_availability,memory_availability
-openshift_override_hostname_check: true
 EOF
 
 
