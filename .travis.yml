@@ -12,11 +12,11 @@ python:
   - "2.7"
 
 install:
-- ci/install.sh
+- ci/openstack/install.sh
 
 script:
-- ci/provision.sh
-- ci/validate.sh
+- ci/openstack/provision.sh
+- ci/openstack/validate.sh
 
 after_script:
-- ci/teardown.sh
+- ci/openstack/teardown.sh
