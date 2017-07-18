@@ -2,6 +2,11 @@
 
 set -euo pipefail
 
+if [ "$RUN_OPENSTACK_CI" == "false" ]; then
+    echo RUN_OPENSTACK_CI is set to false, skipping the openstack end to end test.
+    exit
+fi
+
 # Do we have ssh keys?
 
 export INVENTORY="$PWD/playbooks/provisioning/openstack/sample-inventory"

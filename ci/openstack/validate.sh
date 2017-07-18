@@ -2,6 +2,11 @@
 
 set -euo pipefail
 
+if [ "$RUN_OPENSTACK_CI" == "false" ]; then
+    echo RUN_OPENSTACK_CI is set to false, skipping the openstack end to end test.
+    exit
+fi
+
 export PATH="$PWD/bin:$PATH"
 
 oc login --insecure-skip-tls-verify=true https://master-0.openshift.example.com:8443 -u test -p password
