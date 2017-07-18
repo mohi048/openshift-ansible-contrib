@@ -3,6 +3,9 @@
 set -euo pipefail
 
 git clone https://github.com/openshift/openshift-ansible ../openshift-ansible
+cd ../openshift-ansible
+git checkout openshift-ansible-3.6.153-1
+cd ../openshift-ansible-contrib
 
 pip install ansible shade dnspython python-openstackclient python-heatclient
 
