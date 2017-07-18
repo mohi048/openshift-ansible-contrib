@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-if [ "$RUN_OPENSTACK_CI" == "false" ]; then
+if [ "$RUN_OPENSTACK_CI" != "true" ]; then
     echo RUN_OPENSTACK_CI is set to false, skipping the openstack end to end test.
     exit
 fi
