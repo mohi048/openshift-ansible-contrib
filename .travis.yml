@@ -25,12 +25,12 @@ matrix:
       env: RUN_OPENSTACK_CI=true
 
 install:
-  - pip install -r requirements.txt
-  - pip install tox-travis
+  - test "$RUN_OPENSTACK_CI" == false && pip install -r requirements.txt
+  - test "$RUN_OPENSTACK_CI" == false && pip install tox-travis
   - ci/openstack/install.sh
 
 script:
-  - tox
+  - test "$RUN_OPENSTACK_CI" == false && tox
   - ci/openstack/provision.sh
   - travis_wait 40 ci/openstack/install-openshift.sh
   - ci/openstack/validate.sh
