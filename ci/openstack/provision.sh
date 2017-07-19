@@ -32,6 +32,7 @@ echo "node_ingress_cidr: $PUBLIC_IP/32" >> "$INVENTORY"/group_vars/all.yml
 echo "manage_packages: False" >> "$INVENTORY"/group_vars/all.yml
 
 cat << EOF >> "$INVENTORY"/group_vars/OSEv3.yml
+ansible_become: true
 openshift_master_identity_providers:
 - name: 'htpasswd_auth'
   login: 'true'
