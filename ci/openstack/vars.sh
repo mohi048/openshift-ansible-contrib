@@ -1,1 +1,1 @@
-export RUN_OPENSTACK_CI=false
+#export RUN_OPENSTACK_CI=false
