@@ -11,7 +11,7 @@
     - role: static_inventory
       when: openstack_inventory|default('static') == 'static'
       inventory_path: "{{ openstack_inventory_path|default(inventory_dir) }}"
-      private_ssh_key: "{{ openstack_private_ssh_key|default('~/.ssh/openshift') }}"
+      private_ssh_key: "{{ openstack_private_ssh_key|default('~/.ssh/id_rsa') }}"
 
 - name: Refresh Server inventory
   hosts: localhost
