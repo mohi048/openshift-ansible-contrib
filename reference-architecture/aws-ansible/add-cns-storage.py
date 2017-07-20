@@ -331,3 +331,4 @@ if __name__ == '__main__':
     sys.exit(1)
 
   launch_refarch_env(auto_envvar_prefix='OSE_REFArch')
+whatever
