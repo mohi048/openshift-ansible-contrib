@@ -48,6 +48,7 @@ masters.{{ stack_name }}
 
 [etcd:children]
 etcd.{{ stack_name }}
+{% if groups['etcd']|length == 0 %}masters.{{ stack_name }}{% endif %}
 
 [nodes:children]
 masters
