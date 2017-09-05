@@ -1,5 +1,6 @@
 ---
 - include: networking.yaml
+- include: security-groups.yaml
 - include: master-group.yaml
 - include: infra-group.yaml
 - include: compute-group.yaml

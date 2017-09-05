@@ -1,0 +1,38 @@
+---
+# TODO: to use the flat_secgroup option, just make sure that all security groups
+# end up having the same name. That way, all the rules will be assigned to a
+# single group
+
+
+- name: Create the common security group
+  os_security_group:
+    name: "openshift-ansible-{{stack_name}}-common-secgrp"
+  register: commmon_security_group
+
+- debug: var=commmon_security_group
+
+
+- name: Create ICMP rule
+  os_security_group_rule:
+    security_group: "{{ commmon_security_group.id }}"
+    direction: ingress
+    protocol: icmp
+    remote_ip_prefix: "{{ ssh_ingress_cidr }}"
+
+
+- name: Create SSH rule
+  os_security_group_rule:
+    security_group: "{{ commmon_security_group.id }}"
+    protocol: tcp
+    port_range_min: 22
+    port_range_max: 22
+    remote_ip_prefix: "{{ ssh_ingress_cidr }}"
+
+- name: Create SSH rule for the bastion server
+  os_security_group_rule:
+    security_group: "{{ commmon_security_group.id }}"
+    protocol: tcp
+    port_range_min: 22
+    port_range_max: 22
+    remote_ip_prefix: "{{ bastion_ingress_cidr }}"
+  when: use_bastion|bool
