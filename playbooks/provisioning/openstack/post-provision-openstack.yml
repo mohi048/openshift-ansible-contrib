@@ -68,7 +68,7 @@
     - stack_params.yaml
   tasks:
     - include_role:
-        name: openstack-stack
+        name: openstack-resources
         tasks_from: subnet_update_dns_servers
 
 - name: OpenShift Pre-Requisites (part 2)

@@ -1,0 +1,5 @@
+---
+- debug: var=openstack_private_network
+- name: Create the container network
+  os_network:
+    name: "{{ openstack_private_network }}"

@@ -7,7 +7,7 @@
   pre_tasks:
     - include: pre_tasks.yml
   roles:
-    - role: openstack-stack
+    - role: openstack-resources
     - role: static_inventory
       when: openstack_inventory|default('static') == 'static'
       inventory_path: "{{ openstack_inventory_path|default(inventory_dir) }}"
