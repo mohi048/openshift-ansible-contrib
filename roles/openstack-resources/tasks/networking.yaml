@@ -7,7 +7,7 @@
 - name: Create the container network
   os_network:
     name: "{{ openstack_private_network }}"
-  async: 180
+  # async: 180
   register: cluster_network
 
 - debug: var=cluster_network
@@ -19,7 +19,7 @@
     cidr: "{{ subnet_prefix }}.0/24"
     allocation_pool_start: "{{ subnet_prefix }}.3"
     allocation_pool_end: "{{ subnet_prefix }}.254"
-  async: 180
+  # async: 180
   register: cluster_subnet
 
 - debug: var=cluster_subnet
@@ -29,7 +29,7 @@
     name: "{{ openstack_private_network }}-router"
     network: "{{ external_network }}"
     interfaces: ["{{ cluster_subnet.id }}"]
-  async: 180
+  # async: 180
   register: cluster_router
 
 - debug: var=cluster_router
