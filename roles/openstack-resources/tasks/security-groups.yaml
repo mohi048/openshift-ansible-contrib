@@ -206,26 +206,26 @@
     security_group: "{{ lb_security_group.id }}"
     direction: ingress
     protocol: tcp
-    port_range_min: {{ openshift_master_api_port | default(8443) }}
-    port_range_max: {{ openshift_master_api_port | default(8443) }}
-    remote_ip_prefix: {{ lb_ingress_cidr | default(bastion_ingress_cidr) }}
+    port_range_min: "{{ openshift_master_api_port | default(8443) }}"
+    port_range_max: "{{ openshift_master_api_port | default(8443) }}"
+    remote_ip_prefix: "{{ lb_ingress_cidr | default(bastion_ingress_cidr) }}"
 
 - os_security_group_rule:
     security_group: "{{ lb_security_group.id }}"
     direction: ingress
     protocol: tcp
-    port_range_min: {{ openshift_master_api_port | default(8443) }}
-    port_range_max: {{ openshift_master_api_port | default(8443) }}
-    remote_ip_prefix: {{ ssh_ingress_cidr }}
+    port_range_min: "{{ openshift_master_api_port | default(8443) }}"
+    port_range_max: "{{ openshift_master_api_port | default(8443) }}"
+    remote_ip_prefix: "{{ ssh_ingress_cidr }}"
   when: ui_ssh_tunnel|bool
 
 - os_security_group_rule:
     security_group: "{{ lb_security_group.id }}"
     direction: ingress
     protocol: tcp
-    port_range_min: {{ openshift_master_console_port | default(8443) }}
-    port_range_max: {{ openshift_master_console_port | default(8443) }}
-    remote_ip_prefix: {{ lb_ingress_cidr | default(bastion_ingress_cidr) }}
+    port_range_min: "{{ openshift_master_console_port | default(8443) }}"
+    port_range_max: "{{ openshift_master_console_port | default(8443) }}"
+    remote_ip_prefix: "{{ lb_ingress_cidr | default(bastion_ingress_cidr) }}"
   when:
   - openshift_master_console_port is defined
   - openshift_master_console_port != openshift_master_api_port
