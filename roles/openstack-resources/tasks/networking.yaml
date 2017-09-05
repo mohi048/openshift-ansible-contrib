@@ -1,19 +1,32 @@
 ---
+
+# TODO: we can generate all the names ourselves and shouldn't need to
+# use the static inventory and filters for multiple networks
+
 - debug: var=openstack_private_network
 - name: Create the container network
   os_network:
     name: "{{ openstack_private_network }}"
-  register: container_network
+  register: cluster_network
 
-- debug: var=container_network
+- debug: var=cluster_network
 
 - name: Create the container network subnet
   os_subnet:
     name: "{{ openstack_private_network }}-subnet"
-    network_name: "{{ openstack_private_network }}"
+    network_name: "{{ cluster_network.id }}"
     cidr: "{{ subnet_prefix }}.0/24"
     allocation_pool_start: "{{ subnet_prefix }}.3"
     allocation_pool_end: "{{ subnet_prefix }}.254"
-  register: container_subnet
+  register: cluster_subnet
 
-- debug: var=container_subnet
+- debug: var=cluster_subnet
+
+- name: Route the container network to the external one
+  os_router:
+    name: "{{ openstack_private_network }}-router"
+    network: "{{ external_network }}"
+    interfaces: ["{{ cluster_subnet.id }}"]
+  register: cluster_router
+
+- debug: var=cluster_router
