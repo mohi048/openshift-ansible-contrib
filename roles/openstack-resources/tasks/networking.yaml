@@ -3,3 +3,17 @@
 - name: Create the container network
   os_network:
     name: "{{ openstack_private_network }}"
+  register: container_network
+
+- debug: var=container_network
+
+- name: Create the container network subnet
+  os_subnet:
+    name: "{{ openstack_private_network }}-subnet"
+    network_name: "{{ openstack_private_network }}"
+    cidr: "{{ subnet_prefix }}.0/24"
+    allocation_pool_start: "{{ subnet_prefix }}.3"
+    allocation_pool_end: "{{ subnet_prefix }}.254"
+  register: container_subnet
+
+- debug: var=container_subnet
