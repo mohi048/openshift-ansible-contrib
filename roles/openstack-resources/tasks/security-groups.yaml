@@ -6,19 +6,65 @@
 
 - name: Create the common security group
   os_security_group:
-    name: "openshift-ansible-{{stack_name}}-common-secgrp"
+    name: "openshift-ansible-{{ stack_name }}-common-secgrp"
+    description: >-
+      Basic ssh/icmp security group for {{ stack_name }} OpenShift cluster
   register: commmon_security_group
 
 - debug: var=commmon_security_group
 
+- name: Create the etcd security group
+  os_security_group:
+    name: openshift-ansible-{{ stack_name }}-etcd-secgrp
+    description: >-
+      Security group for {{ stack_name }} etcd cluster
+  register: etcd_security_group
 
+- debug: var=etcd_security_group
+
+- name: Create the infra security group
+  os_security_group:
+    name: openshift-ansible-{{ stack_name }}-infra-secgrp
+    description: >-
+      Security group for {{ stack_name }} OpenShift infrastructure cluster nodes
+  register: infra_security_group
+
+- debug: var=infra_security_group
+
+- name: Create the node security group
+  os_security_group:
+    name: openshift-ansible-{{ stack_name }}-node-secgrp
+    description: >-
+      Security group for {{ stack_name }} OpenShift cluster nodes
+  register: node_security_group
+
+- debug: var=node_security_group
+
+- name: Create the DNS security group
+  os_security_group:
+    name: openshift-ansible-{{ stack_name }}-dns-secgrp
+    description: >-
+      Security group for {{ stack_name }} cluster DNS
+  register: dns_security_group
+
+- debug: var=dns_security_group
+
+- name: Create the Load Balancer security group
+  os_security_group:
+    name: openshift-ansible-{{ stack_name }}-lb-secgrp
+    description: >-
+      Security group for {{ stack_name }} cluster Load Balancer
+  register: lb_security_group
+
+- debug: var=lb_security_group
+
+# Rules for the common security group
 - name: Create ICMP rule
   os_security_group_rule:
     security_group: "{{ commmon_security_group.id }}"
     direction: ingress
     protocol: icmp
     remote_ip_prefix: "{{ ssh_ingress_cidr }}"
-
 
 - name: Create SSH rule
   os_security_group_rule:
@@ -36,3 +82,150 @@
     port_range_max: 22
     remote_ip_prefix: "{{ bastion_ingress_cidr }}"
   when: use_bastion|bool
+
+# Rules for the etcd security group
+- os_security_group_rule:
+    security_group: "{{ etcd_security_group.id }}"
+    direction: ingress
+    protocol: tcp
+    port_range_min: 2379
+    port_range_max: 2379
+    remote_group: "{{ etcd_security_group.id }}"
+
+- os_security_group_rule:
+    security_group: "{{ etcd_security_group.id }}"
+    direction: ingress
+    protocol: tcp
+    port_range_min: 2380
+    port_range_max: 2380
+    remote_group: "{{ etcd_security_group.id }}"
+
+# Rules for the infra security group
+- os_security_group_rule:
+    security_group: "{{ infra_security_group.id }}"
+    direction: ingress
+    protocol: tcp
+    port_range_min: 80
+    port_range_max: 80
+
+- os_security_group_rule:
+    security_group: "{{ infra_security_group.id }}"
+    direction: ingress
+    protocol: tcp
+    port_range_min: 443
+    port_range_max: 443
+
+# Rules for the node security group
+- os_security_group_rule:
+    security_group: "{{ node_security_group.id }}"
+    direction: ingress
+    protocol: tcp
+    port_range_min: 10250
+    port_range_max: 10250
+    remote_group: "{{ node_security_group.id }}"
+
+- os_security_group_rule:
+    security_group: "{{ node_security_group.id }}"
+    direction: ingress
+    protocol: tcp
+    port_range_min: 10255
+    port_range_max: 10255
+    remote_mode: remote_group_id
+    remote_group: "{{ node_security_group.id }}"
+
+- os_security_group_rule:
+    security_group: "{{ node_security_group.id }}"
+    direction: ingress
+    protocol: udp
+    port_range_min: 10255
+    port_range_max: 10255
+    remote_mode: remote_group_id
+    remote_group: "{{ node_security_group.id }}"
+
+- os_security_group_rule:
+    security_group: "{{ node_security_group.id }}"
+    direction: ingress
+    protocol: udp
+    port_range_min: 4789
+    port_range_max: 4789
+    remote_mode: remote_group_id
+    remote_group: "{{ node_security_group.id }}"
+
+- os_security_group_rule:
+    security_group: "{{ node_security_group.id }}"
+    direction: ingress
+    protocol: tcp
+    port_range_min: 30000
+    port_range_max: 32767
+    remote_ip_prefix: "{{ node_ingress_cidr }}"
+
+- os_security_group_rule:
+    security_group: "{{ node_security_group.id }}"
+    direction: ingress
+    protocol: tcp
+    port_range_min: 30000
+    port_range_max: 32767
+    remote_ip_prefix: "{{ openstack_subnet_prefix }}.0/24"
+
+# Rules for the DNS security gorup
+- os_security_group_rule:
+    security_group: "{{ dns_security_group.id }}"
+  - direction: ingress
+    protocol: udp
+    port_range_min: 53
+    port_range_max: 53
+    remote_ip_prefix: "{{ node_ingress_cidr }}"
+
+- os_security_group_rule:
+    security_group: "{{ dns_security_group.id }}"
+    direction: ingress
+    protocol: udp
+    port_range_min: 53
+    port_range_max: 53
+    remote_ip_prefix: "{{ openstack_subnet_prefix }}.0/24"
+
+- os_security_group_rule:
+    security_group: "{{ dns_security_group.id }}"
+    direction: ingress
+    protocol: tcp
+    port_range_min: 53
+    port_range_max: 53
+    remote_ip_prefix: "{{ node_ingress_cidr }}"
+
+- os_security_group_rule:
+    security_group: "{{ dns_security_group.id }}"
+    direction: ingress
+    protocol: tcp
+    port_range_min: 53
+    port_range_max: 53
+    remote_ip_prefix: "{{ openstack_subnet_prefix }}.0/24"
+
+
+# Rules for the LB security group
+- os_security_group_rule:
+    security_group: "{{ lb_security_group.id }}"
+    direction: ingress
+    protocol: tcp
+    port_range_min: {{ openshift_master_api_port | default(8443) }}
+    port_range_max: {{ openshift_master_api_port | default(8443) }}
+    remote_ip_prefix: {{ lb_ingress_cidr | default(bastion_ingress_cidr) }}
+
+- os_security_group_rule:
+    security_group: "{{ lb_security_group.id }}"
+    direction: ingress
+    protocol: tcp
+    port_range_min: {{ openshift_master_api_port | default(8443) }}
+    port_range_max: {{ openshift_master_api_port | default(8443) }}
+    remote_ip_prefix: {{ ssh_ingress_cidr }}
+  when: ui_ssh_tunnel|bool
+
+- os_security_group_rule:
+    security_group: "{{ lb_security_group.id }}"
+    direction: ingress
+    protocol: tcp
+    port_range_min: {{ openshift_master_console_port | default(8443) }}
+    port_range_max: {{ openshift_master_console_port | default(8443) }}
+    remote_ip_prefix: {{ lb_ingress_cidr | default(bastion_ingress_cidr) }}
+  when:
+  - openshift_master_console_port is defined
+  - openshift_master_console_port != openshift_master_api_port
